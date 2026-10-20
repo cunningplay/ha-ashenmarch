@@ -514,3 +514,18 @@ async def test_rank_failure_keeps_the_realm_running(hass: HomeAssistant, server:
     assert entry.runtime_data.last_update_success
     assert hass.states.get("sensor.house_testhold_holdings").state == "14"
     assert hass.states.get("sensor.house_testhold_rank_progress").state == "62"  # previous value kept
+
+
+async def test_empty_recent_is_seeded_once_without_firing(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    # An entry from v0.1.0: a stored cursor but no recent list. The last day's events fill it, and nothing fires again.
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    p.events.extend([event("old1", "holding_won", north_of(HOME, 1)), event("old2", "siege_started", north_of(HOME, 1))])
+    entry = make_entry()
+    await setup(hass, entry)
+    coord = entry.runtime_data
+    coord._recent.clear()
+    fired = async_capture_events(hass, EVENT_ASHENMARCH)
+    await poll(hass, entry)
+    assert [e["id"] for e in hass.states.get("sensor.house_testhold_last_event").attributes["recent"]] == ["old2", "old1"]
+    assert fired == []
+    assert [c for c in server.calls if c[0] == "/players/me/events"][-1][2].get("since") == "2"  # the cursor didn't move

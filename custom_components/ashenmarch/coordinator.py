@@ -219,6 +219,8 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
     async def _async_poll_events(self) -> None:
         if not self.events_available:
             return
+        if not self._recent and self._cursor is not None:
+            await self._async_seed_recent()
         first_run = self._cursor is None
         area = self.alert_area()
         strings = await self._async_strings()
@@ -237,6 +239,18 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             # The server doesn't have the feed yet: sensors still work, alerts wait.
             _LOGGER.warning("The Ashenmarch events feed isn't available yet; alerts are off")
             self.events_available = False
+
+    async def _async_seed_recent(self) -> None:
+        """Fill an empty recent list from the feed's last 24 hours (an entry set up before v0.2.0 kept none).
+        Nothing fires and the cursor doesn't move."""
+        try:
+            page = await self.api.get_events(None, EVENTS_PAGE_LIMIT)
+        except AshenmarchNotAvailable:
+            return
+        for event in page.get("events") or []:  # oldest first
+            # Only events already handled; a new one is left to the normal pass, which also fires it.
+            if event.get("id") and str(event["id"]) in self._seen:
+                self._recent.appendleft(_recent_entry(event))
 
     async def _async_poll_crest(self) -> None:
         if not self.crest_available:
@@ -349,17 +363,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._seen.append(event_id)
         etype = event.get("type")
         territory = event.get("territory") or None
-        data = event.get("data") or {}
-        self._recent.appendleft(
-            {
-                "id": event_id,
-                "type": etype,
-                "at": event.get("at"),
-                "message": event.get("message"),
-                "territory": (territory or {}).get("name"),
-                **{k: data[k] for k in ("outcome", "distance_m", "new_holding", "area_new_m2") if k in data},
-            }
-        )
+        self._recent.appendleft(_recent_entry(event))
         distances = zone_distances(territory, area.zones)
         within = [m for m in distances if m.distance_km <= area.radius_km]
 
@@ -452,3 +456,16 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             )
             self._device_id = device.id if device else None
         return self._device_id
+
+
+def _recent_entry(event: dict[str, Any]) -> dict[str, Any]:
+    """One event for a House's details page: what happened and the Herald's line, never coordinates."""
+    data = event.get("data") or {}
+    return {
+        "id": str(event.get("id", "")),
+        "type": event.get("type"),
+        "at": event.get("at"),
+        "message": event.get("message"),
+        "territory": (event.get("territory") or {}).get("name"),
+        **{k: data[k] for k in ("outcome", "distance_m", "new_holding", "area_new_m2") if k in data},
+    }
