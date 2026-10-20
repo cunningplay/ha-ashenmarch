@@ -6,6 +6,32 @@ Your [Ashenmarch](https://ashenmarch.com) realm in Home Assistant: holdings, sie
 
 *[Español más abajo](#ashenmarch-para-home-assistant).*
 
+## Screenshots
+
+Real captures from a household Home Assistant with two players.
+
+**A House's device page**: every sensor, the coat of arms on Holdings.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/device.png" alt="House Cunningham device page with the realm sensors" width="720">
+
+**The coat of arms** (`image.<house>_coat_of_arms`), served by Home Assistant itself.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/crest.png" alt="The coat of arms image entity" width="720">
+
+**An example dashboard card** (YAML below).
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/dashboard-card.png" alt="Dashboard card: crest, holdings, siege nearby, next to fade, rank progress, this week" width="520">
+
+**Configure**: alert area, zones and radius.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/configure.png" alt="The Configure screen: alert area, zones, radius" width="520">
+
+**Two Houses in one Home Assistant**: each player is their own entry and device.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/two-houses.png" alt="Two Houses configured in one Home Assistant" width="720">
+
+A phone notification from the example automation will be added after the next real siege.
+
 ## Install (HACS)
 
 1. HACS → ⋮ → **Custom repositories** → add `https://github.com/cunningplay/ha-ashenmarch`, type **Integration**.
@@ -135,6 +161,33 @@ automation:
           message: "{{ trigger.event.data.message_with_zone }}"
 ```
 
+**Dashboard card** like the screenshot above (picture of the crest, then the numbers):
+
+```yaml
+type: grid
+columns: 2
+square: false
+cards:
+  - type: picture-entity
+    entity: image.house_cunningham_coat_of_arms
+    show_name: false
+    show_state: false
+    fit_mode: contain
+  - type: entities
+    title: House Cunningham
+    entities:
+      - entity: sensor.house_cunningham_holdings
+        name: Holdings
+      - entity: binary_sensor.house_cunningham_under_siege_nearby
+        name: Siege nearby
+      - entity: sensor.house_cunningham_next_to_fade
+        name: Next to fade
+      - entity: sensor.house_cunningham_rank_progress
+        name: To next rank
+      - entity: sensor.house_cunningham_distance_this_week
+        name: This week
+```
+
 ## Privacy
 
 - The token is stored only in Home Assistant's config entry, never logged, and redacted in diagnostics.
@@ -163,6 +216,8 @@ MIT. See [LICENSE](LICENSE).
 Tu reino de [Ashenmarch](https://ashenmarch.com) en Home Assistant: dominios, asedios, posición y el escudo de armas de tu Casa como entidades, más un `ashenmarch_event` por cada asedio, dominio perdido o ganado, dominio a punto de desvanecerse y marcha registrada, para recibir avisos cuando atacan un territorio **cerca de tus zonas**.
 
 **Varios jugadores por casa.** Cada jugador añade su propio token y tiene su propio dispositivo de Casa (`sensor.casa_cunningham_…`). Cada evento dice de quién es el reino.
+
+Las capturas de pantalla están arriba, en la sección en inglés.
 
 ## Instalación (HACS)
 
