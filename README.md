@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/custom_components/ashenmarch/brand/icon.png" alt="Ashenmarch" width="120"></p>
+
 # Ashenmarch for Home Assistant
 
 Your [Ashenmarch](https://ashenmarch.com) realm in Home Assistant: holdings, sieges, rank and your House's coat of arms as entities, plus an `ashenmarch_event` for every siege, lost or won holding, fading holding and filed march, so you can be notified when territory **near your zones** is under attack.
