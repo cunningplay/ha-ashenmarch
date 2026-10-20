@@ -1,0 +1,12 @@
+{
+  "domain": "ashenmarch",
+  "name": "Ashenmarch",
+  "codeowners": ["@cunningplay"],
+  "config_flow": true,
+  "dependencies": ["image"],
+  "documentation": "https://github.com/cunningplay/ha-ashenmarch",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/cunningplay/ha-ashenmarch/issues",
+  "version": "0.1.0"
+}

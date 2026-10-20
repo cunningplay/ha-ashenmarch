@@ -1,0 +1,142 @@
+{
+  "common": {
+    "near_zone": "vicino a {zone} ({distance} {unit})"
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aggiungi un giocatore di Ashenmarch",
+        "description": "Incolla un token di accesso personale. Crealo nella tua pagina del profilo ({portal_url}), in Token di accesso personali: è di sola lettura e puoi revocarlo lì in qualsiasi momento. Ogni giocatore della casa aggiunge il proprio token.",
+        "data": {
+          "token": "Token di accesso personale"
+        },
+        "data_description": {
+          "token": "Inizia con am_pat_. Viene mostrato una sola volta, alla creazione."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Nuovo token per {house}",
+        "description": "Ashenmarch ha rifiutato il token di {house} (revocato, scaduto o l'account è cambiato). Creane uno nuovo nella tua pagina del profilo ({portal_url}) e incollalo qui. Gli altri giocatori non sono coinvolti.",
+        "data": {
+          "token": "Token di accesso personale"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ashenmarch ha rifiutato questo token. Controlla di averlo copiato per intero e che non sia stato revocato.",
+      "cannot_connect": "Impossibile raggiungere Ashenmarch. Riprova tra poco.",
+      "unknown": "Risposta inattesa da Ashenmarch."
+    },
+    "abort": {
+      "already_configured": "Questo giocatore è già configurato.",
+      "reauth_successful": "Token aggiornato. Home Assistant sta rileggendo il regno.",
+      "wrong_player": "Quel token è di un altro giocatore. Usa un token dello stesso account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Avvisi",
+        "description": "Gli avvisi (assedi, feudi persi o conquistati, prossimi a svanire) arrivano solo per i territori entro il raggio delle zone scelte. Le tue marce arrivano sempre. Raggio predefinito: {one_zone} {unit} con una zona, {many_zones} {unit} con due o più, finché non ne scrivi uno tuo (predefinito per {zone_count} zona/e: {default} {unit}).",
+        "data": {
+          "alert_area": "Area degli avvisi",
+          "zones": "Zone",
+          "radius": "Raggio"
+        },
+        "data_description": {
+          "zones": "Un avviso arriva quando il suo territorio è entro il raggio di una di queste zone.",
+          "radius": "Svuota il campo per tornare al valore predefinito."
+        }
+      }
+    },
+    "error": {
+      "zones_required": "Scegli almeno una zona, oppure Tutti i territori."
+    }
+  },
+  "selector": {
+    "alert_area": {
+      "options": {
+        "near": "Vicino alle mie zone",
+        "all": "Tutti i territori"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "holdings": {
+        "name": "Feudi",
+        "state_attributes": {
+          "area_m2": {
+            "name": "Area (m²)"
+          },
+          "area_km2": {
+            "name": "Area (km²)"
+          },
+          "area_mi2": {
+            "name": "Area (mi²)"
+          }
+        }
+      },
+      "under_siege_count": {
+        "name": "Feudi sotto assedio"
+      },
+      "next_fade": {
+        "name": "Prossimo a svanire"
+      },
+      "rank": {
+        "name": "Posizione",
+        "state_attributes": {
+          "region": {
+            "name": "Regione"
+          },
+          "title": {
+            "name": "Titolo"
+          }
+        }
+      },
+      "week_distance": {
+        "name": "Distanza questa settimana"
+      },
+      "last_updated": {
+        "name": "Ultimo aggiornamento"
+      }
+    },
+    "binary_sensor": {
+      "under_siege": {
+        "name": "Sotto assedio"
+      },
+      "under_siege_nearby": {
+        "name": "Sotto assedio nelle vicinanze",
+        "state_attributes": {
+          "zones": {
+            "name": "Zone"
+          },
+          "territories": {
+            "name": "Territori"
+          }
+        }
+      }
+    },
+    "image": {
+      "coat_of_arms": {
+        "name": "Stemma"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "siege_started": "Assedio iniziato",
+      "siege_ended": "Assedio terminato",
+      "holding_lost": "Feudo perso",
+      "holding_won": "Feudo conquistato",
+      "fading_soon": "Prossimo a svanire",
+      "march_filed": "Marcia registrata"
+    }
+  },
+  "issues": {
+    "no_zones": {
+      "title": "Gli avvisi di Ashenmarch di {house} non hanno una zona",
+      "description": "Nessuna delle zone scelte per gli avvisi di {house} esiste più, quindi ora arrivano da tutti i territori. Apri Ashenmarch → Configura e scegli una zona per limitarli di nuovo."
+    }
+  }
+}

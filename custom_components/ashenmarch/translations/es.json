@@ -1,0 +1,142 @@
+{
+  "common": {
+    "near_zone": "cerca de {zone} ({distance} {unit})"
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Añadir un jugador de Ashenmarch",
+        "description": "Pega un token de acceso personal. Créalo en tu página de perfil ({portal_url}), en Tokens de acceso personal: es de solo lectura y puedes revocarlo allí cuando quieras. Cada jugador de la casa añade su propio token.",
+        "data": {
+          "token": "Token de acceso personal"
+        },
+        "data_description": {
+          "token": "Empieza con am_pat_. Solo se muestra una vez, al crearlo."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Nuevo token para {house}",
+        "description": "Ashenmarch rechazó el token de {house} (revocado, caducado o la cuenta cambió). Crea uno nuevo en tu página de perfil ({portal_url}) y pégalo aquí. Los demás jugadores no se ven afectados.",
+        "data": {
+          "token": "Token de acceso personal"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ashenmarch rechazó este token. Revisa que lo copiaste completo y que no está revocado.",
+      "cannot_connect": "No se pudo conectar con Ashenmarch. Inténtalo de nuevo en un momento.",
+      "unknown": "Respuesta inesperada de Ashenmarch."
+    },
+    "abort": {
+      "already_configured": "Este jugador ya está configurado.",
+      "reauth_successful": "Token actualizado. Home Assistant vuelve a leer el reino.",
+      "wrong_player": "Ese token es de otro jugador. Usa un token de la misma cuenta."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alertas",
+        "description": "Las alertas (asedios, dominios perdidos o ganados, a punto de desvanecerse) solo llegan para territorios dentro del radio de las zonas elegidas. Tus propias marchas siempre llegan. Radio por defecto: {one_zone} {unit} con una zona, {many_zones} {unit} con dos o más, hasta que escribas el tuyo (por defecto para {zone_count} zona(s): {default} {unit}).",
+        "data": {
+          "alert_area": "Área de alertas",
+          "zones": "Zonas",
+          "radius": "Radio"
+        },
+        "data_description": {
+          "zones": "Una alerta llega cuando su territorio está dentro del radio de cualquiera de estas zonas.",
+          "radius": "Borra el campo para volver al valor por defecto."
+        }
+      }
+    },
+    "error": {
+      "zones_required": "Elige al menos una zona, o elige Todos los territorios."
+    }
+  },
+  "selector": {
+    "alert_area": {
+      "options": {
+        "near": "Cerca de mis zonas",
+        "all": "Todos los territorios"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "holdings": {
+        "name": "Dominios",
+        "state_attributes": {
+          "area_m2": {
+            "name": "Área (m²)"
+          },
+          "area_km2": {
+            "name": "Área (km²)"
+          },
+          "area_mi2": {
+            "name": "Área (mi²)"
+          }
+        }
+      },
+      "under_siege_count": {
+        "name": "Dominios bajo asedio"
+      },
+      "next_fade": {
+        "name": "Próximo en desvanecerse"
+      },
+      "rank": {
+        "name": "Posición",
+        "state_attributes": {
+          "region": {
+            "name": "Región"
+          },
+          "title": {
+            "name": "Título"
+          }
+        }
+      },
+      "week_distance": {
+        "name": "Distancia esta semana"
+      },
+      "last_updated": {
+        "name": "Última actualización"
+      }
+    },
+    "binary_sensor": {
+      "under_siege": {
+        "name": "Bajo asedio"
+      },
+      "under_siege_nearby": {
+        "name": "Bajo asedio cerca",
+        "state_attributes": {
+          "zones": {
+            "name": "Zonas"
+          },
+          "territories": {
+            "name": "Territorios"
+          }
+        }
+      }
+    },
+    "image": {
+      "coat_of_arms": {
+        "name": "Escudo de armas"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "siege_started": "Asedio iniciado",
+      "siege_ended": "Asedio terminado",
+      "holding_lost": "Dominio perdido",
+      "holding_won": "Dominio ganado",
+      "fading_soon": "A punto de desvanecerse",
+      "march_filed": "Marcha registrada"
+    }
+  },
+  "issues": {
+    "no_zones": {
+      "title": "Las alertas de Ashenmarch de {house} no tienen zona",
+      "description": "Ninguna de las zonas elegidas para las alertas de {house} existe ya, así que ahora llegan de todos los territorios. Abre Ashenmarch → Configurar y elige una zona para limitarlas de nuevo."
+    }
+  }
+}

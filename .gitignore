@@ -1,0 +1,9 @@
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+uv.lock
+# Local dev Home Assistant (screenshots): its config holds real tokens. Never committed.
+dev/
+.env*

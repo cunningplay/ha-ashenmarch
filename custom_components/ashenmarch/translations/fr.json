@@ -1,0 +1,142 @@
+{
+  "common": {
+    "near_zone": "près de {zone} ({distance} {unit})"
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter un joueur Ashenmarch",
+        "description": "Collez un jeton d'accès personnel. Créez-le sur votre page de profil ({portal_url}), sous Jetons d'accès personnels : il est en lecture seule et vous pouvez le révoquer à tout moment. Chaque joueur du foyer ajoute son propre jeton.",
+        "data": {
+          "token": "Jeton d'accès personnel"
+        },
+        "data_description": {
+          "token": "Commence par am_pat_. Il n'est affiché qu'une fois, à sa création."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Nouveau jeton pour {house}",
+        "description": "Ashenmarch a refusé le jeton de {house} (révoqué, expiré ou compte modifié). Créez-en un nouveau sur votre page de profil ({portal_url}) et collez-le ici. Les autres joueurs ne sont pas concernés.",
+        "data": {
+          "token": "Jeton d'accès personnel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ashenmarch a refusé ce jeton. Vérifiez qu'il est copié en entier et qu'il n'a pas été révoqué.",
+      "cannot_connect": "Impossible de joindre Ashenmarch. Réessayez dans un instant.",
+      "unknown": "Réponse inattendue d'Ashenmarch."
+    },
+    "abort": {
+      "already_configured": "Ce joueur est déjà configuré.",
+      "reauth_successful": "Jeton mis à jour. Home Assistant relit le royaume.",
+      "wrong_player": "Ce jeton appartient à un autre joueur. Utilisez un jeton du même compte."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alertes",
+        "description": "Les alertes (sièges, fiefs perdus ou gagnés, bientôt effacés) ne concernent que les territoires dans le rayon des zones choisies. Vos propres marches sont toujours signalées. Rayon par défaut : {one_zone} {unit} pour une zone, {many_zones} {unit} pour deux ou plus, jusqu'à ce que vous saisissiez le vôtre (par défaut pour {zone_count} zone(s) : {default} {unit}).",
+        "data": {
+          "alert_area": "Zone d'alerte",
+          "zones": "Zones",
+          "radius": "Rayon"
+        },
+        "data_description": {
+          "zones": "Une alerte se déclenche quand son territoire est dans le rayon de l'une de ces zones.",
+          "radius": "Videz le champ pour revenir à la valeur par défaut."
+        }
+      }
+    },
+    "error": {
+      "zones_required": "Choisissez au moins une zone, ou Tous les territoires."
+    }
+  },
+  "selector": {
+    "alert_area": {
+      "options": {
+        "near": "Près de mes zones",
+        "all": "Tous les territoires"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "holdings": {
+        "name": "Fiefs",
+        "state_attributes": {
+          "area_m2": {
+            "name": "Superficie (m²)"
+          },
+          "area_km2": {
+            "name": "Superficie (km²)"
+          },
+          "area_mi2": {
+            "name": "Superficie (mi²)"
+          }
+        }
+      },
+      "under_siege_count": {
+        "name": "Fiefs assiégés"
+      },
+      "next_fade": {
+        "name": "Prochain à s'effacer"
+      },
+      "rank": {
+        "name": "Classement",
+        "state_attributes": {
+          "region": {
+            "name": "Région"
+          },
+          "title": {
+            "name": "Titre"
+          }
+        }
+      },
+      "week_distance": {
+        "name": "Distance cette semaine"
+      },
+      "last_updated": {
+        "name": "Dernière mise à jour"
+      }
+    },
+    "binary_sensor": {
+      "under_siege": {
+        "name": "Assiégé"
+      },
+      "under_siege_nearby": {
+        "name": "Assiégé à proximité",
+        "state_attributes": {
+          "zones": {
+            "name": "Zones"
+          },
+          "territories": {
+            "name": "Territoires"
+          }
+        }
+      }
+    },
+    "image": {
+      "coat_of_arms": {
+        "name": "Armoiries"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "siege_started": "Siège commencé",
+      "siege_ended": "Siège terminé",
+      "holding_lost": "Fief perdu",
+      "holding_won": "Fief gagné",
+      "fading_soon": "Bientôt effacé",
+      "march_filed": "Marche enregistrée"
+    }
+  },
+  "issues": {
+    "no_zones": {
+      "title": "Les alertes Ashenmarch de {house} n'ont plus de zone",
+      "description": "Aucune des zones choisies pour les alertes de {house} n'existe plus : elles viennent donc maintenant de tous les territoires. Ouvrez Ashenmarch → Configurer et choisissez une zone pour les limiter à nouveau."
+    }
+  }
+}

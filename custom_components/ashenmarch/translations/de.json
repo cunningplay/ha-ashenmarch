@@ -1,0 +1,142 @@
+{
+  "common": {
+    "near_zone": "nahe {zone} ({distance} {unit})"
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ashenmarch-Spieler hinzufügen",
+        "description": "Füge ein persönliches Zugriffstoken ein. Erstelle es auf deiner Profilseite ({portal_url}) unter Persönliche Zugriffstokens: Es kann nur lesen, und du kannst es dort jederzeit widerrufen. Jeder Spieler im Haushalt fügt sein eigenes Token hinzu.",
+        "data": {
+          "token": "Persönliches Zugriffstoken"
+        },
+        "data_description": {
+          "token": "Beginnt mit am_pat_. Es wird nur einmal beim Erstellen angezeigt."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Neues Token für {house}",
+        "description": "Ashenmarch hat das Token von {house} abgelehnt (widerrufen, abgelaufen oder das Konto hat sich geändert). Erstelle auf deiner Profilseite ({portal_url}) ein neues und füge es hier ein. Andere Spieler sind nicht betroffen.",
+        "data": {
+          "token": "Persönliches Zugriffstoken"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ashenmarch hat dieses Token abgelehnt. Prüfe, ob es vollständig kopiert und nicht widerrufen ist.",
+      "cannot_connect": "Ashenmarch ist nicht erreichbar. Versuche es gleich noch einmal.",
+      "unknown": "Unerwartete Antwort von Ashenmarch."
+    },
+    "abort": {
+      "already_configured": "Dieser Spieler ist bereits eingerichtet.",
+      "reauth_successful": "Token aktualisiert. Home Assistant liest das Reich wieder.",
+      "wrong_player": "Dieses Token gehört einem anderen Spieler. Verwende ein Token desselben Kontos."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Benachrichtigungen",
+        "description": "Benachrichtigungen (Belagerungen, verlorene oder gewonnene Lehen, bald verblassend) kommen nur für Gebiete im Umkreis der gewählten Zonen. Deine eigenen Märsche kommen immer. Standardradius: {one_zone} {unit} bei einer Zone, {many_zones} {unit} bei zwei oder mehr, bis du einen eigenen eingibst (Standard für {zone_count} Zone(n): {default} {unit}).",
+        "data": {
+          "alert_area": "Benachrichtigungsbereich",
+          "zones": "Zonen",
+          "radius": "Radius"
+        },
+        "data_description": {
+          "zones": "Eine Benachrichtigung kommt, wenn ihr Gebiet im Radius einer dieser Zonen liegt.",
+          "radius": "Leere das Feld, um zum Standard zurückzukehren."
+        }
+      }
+    },
+    "error": {
+      "zones_required": "Wähle mindestens eine Zone oder Alle Gebiete."
+    }
+  },
+  "selector": {
+    "alert_area": {
+      "options": {
+        "near": "In der Nähe meiner Zonen",
+        "all": "Alle Gebiete"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "holdings": {
+        "name": "Lehen",
+        "state_attributes": {
+          "area_m2": {
+            "name": "Fläche (m²)"
+          },
+          "area_km2": {
+            "name": "Fläche (km²)"
+          },
+          "area_mi2": {
+            "name": "Fläche (mi²)"
+          }
+        }
+      },
+      "under_siege_count": {
+        "name": "Belagerte Lehen"
+      },
+      "next_fade": {
+        "name": "Verblasst als Nächstes"
+      },
+      "rank": {
+        "name": "Platz",
+        "state_attributes": {
+          "region": {
+            "name": "Region"
+          },
+          "title": {
+            "name": "Titel"
+          }
+        }
+      },
+      "week_distance": {
+        "name": "Strecke diese Woche"
+      },
+      "last_updated": {
+        "name": "Zuletzt aktualisiert"
+      }
+    },
+    "binary_sensor": {
+      "under_siege": {
+        "name": "Belagert"
+      },
+      "under_siege_nearby": {
+        "name": "In der Nähe belagert",
+        "state_attributes": {
+          "zones": {
+            "name": "Zonen"
+          },
+          "territories": {
+            "name": "Gebiete"
+          }
+        }
+      }
+    },
+    "image": {
+      "coat_of_arms": {
+        "name": "Wappen"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "siege_started": "Belagerung begonnen",
+      "siege_ended": "Belagerung beendet",
+      "holding_lost": "Lehen verloren",
+      "holding_won": "Lehen gewonnen",
+      "fading_soon": "Verblasst bald",
+      "march_filed": "Marsch eingetragen"
+    }
+  },
+  "issues": {
+    "no_zones": {
+      "title": "Ashenmarch-Benachrichtigungen von {house} haben keine Zone",
+      "description": "Keine der für die Benachrichtigungen von {house} gewählten Zonen existiert mehr, daher kommen sie jetzt aus allen Gebieten. Öffne Ashenmarch → Konfigurieren und wähle eine Zone, um sie wieder einzugrenzen."
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "common": {
+    "near_zone": "near {zone} ({distance} {unit})"
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add an Ashenmarch player",
+        "description": "Paste a personal access token. Make one on your profile page ({portal_url}) under Personal access tokens: it is read-only and you can revoke it there at any time. Each player in the household adds their own token.",
+        "data": {
+          "token": "Personal access token"
+        },
+        "data_description": {
+          "token": "Starts with am_pat_. It is shown only once when you create it."
+        }
+      },
+      "reauth_confirm": {
+        "title": "New token for {house}",
+        "description": "Ashenmarch refused the token for {house} (revoked, expired or the account changed). Make a new one on your profile page ({portal_url}) and paste it here. Other players are not affected.",
+        "data": {
+          "token": "Personal access token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ashenmarch refused this token. Check that you copied all of it and that it hasn't been revoked.",
+      "cannot_connect": "Couldn't reach Ashenmarch. Try again in a moment.",
+      "unknown": "Unexpected answer from Ashenmarch."
+    },
+    "abort": {
+      "already_configured": "This player is already configured.",
+      "reauth_successful": "Token updated. Home Assistant is reading the realm again.",
+      "wrong_player": "That token belongs to a different player. Use a token from the same account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alerts",
+        "description": "Alerts (sieges, holdings lost or won, fading soon) fire only for territory within the radius of the selected zones. Your own marches always fire. Default radius: {one_zone} {unit} for one zone, {many_zones} {unit} for two or more, until you type your own (default for {zone_count} zone(s): {default} {unit}).",
+        "data": {
+          "alert_area": "Alert area",
+          "zones": "Zones",
+          "radius": "Radius"
+        },
+        "data_description": {
+          "zones": "An alert fires when its territory is within the radius of any of these zones.",
+          "radius": "Clear the field to go back to the default."
+        }
+      }
+    },
+    "error": {
+      "zones_required": "Pick at least one zone, or choose All territories."
+    }
+  },
+  "selector": {
+    "alert_area": {
+      "options": {
+        "near": "Near my zones",
+        "all": "All territories"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "holdings": {
+        "name": "Holdings",
+        "state_attributes": {
+          "area_m2": { "name": "Area (m²)" },
+          "area_km2": { "name": "Area (km²)" },
+          "area_mi2": { "name": "Area (mi²)" }
+        }
+      },
+      "under_siege_count": {
+        "name": "Holdings under siege"
+      },
+      "next_fade": {
+        "name": "Next to fade"
+      },
+      "rank": {
+        "name": "Rank",
+        "state_attributes": {
+          "region": { "name": "Region" },
+          "title": { "name": "Title" }
+        }
+      },
+      "week_distance": {
+        "name": "Distance this week"
+      },
+      "last_updated": {
+        "name": "Last updated"
+      }
+    },
+    "binary_sensor": {
+      "under_siege": {
+        "name": "Under siege"
+      },
+      "under_siege_nearby": {
+        "name": "Under siege nearby",
+        "state_attributes": {
+          "zones": { "name": "Zones" },
+          "territories": { "name": "Territories" }
+        }
+      }
+    },
+    "image": {
+      "coat_of_arms": {
+        "name": "Coat of arms"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "siege_started": "Siege started",
+      "siege_ended": "Siege ended",
+      "holding_lost": "Holding lost",
+      "holding_won": "Holding won",
+      "fading_soon": "Fading soon",
+      "march_filed": "March filed"
+    }
+  },
+  "issues": {
+    "no_zones": {
+      "title": "Ashenmarch alerts for {house} have no zone",
+      "description": "None of the zones selected for {house}'s alerts exists any more, so alerts now come from all territories. Open Ashenmarch → Configure and pick a zone to limit them again."
+    }
+  }
+}
