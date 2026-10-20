@@ -127,6 +127,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._holdings: list[dict[str, Any]] = []
         self._holdings_etag: str | None = None
         self.holdings_available = True
+        self._optional_retry: dict[str, datetime] = {}  # feature -> when to try a route that wasn't there again
         self.events_available = True
         self.crest_available = True
         self._device_id: str | None = None
@@ -226,17 +227,32 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         if self._summary and not self._summary.get("under_siege"):
             self._nearby.clear()
 
+    def _optional_due(self, feature: str) -> bool:
+        """An optional route that answered 404/403 is tried again an hour later (it may have been deployed since)."""
+        at = self._optional_retry.get(feature)
+        return at is None or dt_util.utcnow() >= at
+
+    def _optional_off(self, feature: str, err: Exception) -> None:
+        if feature not in self._optional_retry:
+            _LOGGER.info("Ashenmarch %s isn't available for this token yet (%s); retrying hourly", feature, err)
+        self._optional_retry[feature] = dt_util.utcnow() + SLOW_INTERVAL
+
+    def _optional_on(self, feature: str) -> None:
+        self._optional_retry.pop(feature, None)
+
     async def _async_poll_holdings(self) -> None:
         """The holdings list (ASH-3754), with an ETag. Coordinates are only used here, to name the nearest alert zone;
         they never reach HA's state or the Store."""
-        if not self.holdings_available:
+        if not self._optional_due("holdings"):
             return
         try:
             fetched = await self.api.get_holdings(self._holdings_etag)
-        except AshenmarchNotAvailable:
-            _LOGGER.info("The Ashenmarch holdings list isn't available yet")
+        except AshenmarchNotAvailable as err:
             self.holdings_available = False
+            self._optional_off("holdings", err)
             return
+        self.holdings_available = True
+        self._optional_on("holdings")
         self._holdings_etag = fetched.etag
         if fetched.not_modified or not isinstance(fetched.data, dict):
             return
@@ -256,7 +272,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._holdings = out
 
     async def _async_poll_events(self) -> None:
-        if not self.events_available:
+        if not self._optional_due("events"):
             return
         if not self._recent and self._cursor is not None:
             await self._async_seed_recent()
@@ -274,10 +290,13 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 self._cursor = next_cursor
                 if done:
                     break
-        except AshenmarchNotAvailable:
-            # The server doesn't have the feed yet: sensors still work, alerts wait.
-            _LOGGER.warning("The Ashenmarch events feed isn't available yet; alerts are off")
+        except AshenmarchNotAvailable as err:
+            # The server doesn't offer the feed to this token yet: sensors still work, alerts wait.
             self.events_available = False
+            self._optional_off("events", err)
+        else:
+            self.events_available = True
+            self._optional_on("events")
 
     async def _async_seed_recent(self) -> None:
         """Fill an empty recent list from the feed's last 24 hours (an entry set up before v0.2.0 kept none).
@@ -285,14 +304,14 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         try:
             page = await self.api.get_events(None, EVENTS_PAGE_LIMIT)
         except AshenmarchNotAvailable:
-            return
+            return  # the normal pass right after records the outage
         for event in page.get("events") or []:  # oldest first
             # Only events already handled; a new one is left to the normal pass, which also fires it.
             if event.get("id") and str(event["id"]) in self._seen:
                 self._recent.appendleft(_recent_entry(event))
 
     async def _async_poll_crest(self) -> None:
-        if not self.crest_available:
+        if not self._optional_due("crest"):
             return
         crest_id = self._summary.get("crest_id")
         now = dt_util.utcnow()
@@ -306,10 +325,12 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             return
         try:
             fetched = await self.api.get_coat_of_arms(self._crest_etag if self._crest else None)
-        except AshenmarchNotAvailable:
-            _LOGGER.warning("The Ashenmarch coat-of-arms image isn't available yet")
+        except AshenmarchNotAvailable as err:
             self.crest_available = False
+            self._optional_off("crest", err)
             return
+        self.crest_available = True
+        self._optional_on("crest")
         self._crest_etag = fetched.etag
         self._crest_id = crest_id
         self._crest_fetched = now

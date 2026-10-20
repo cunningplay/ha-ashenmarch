@@ -571,3 +571,22 @@ async def test_holdings_route_missing_keeps_running(hass: HomeAssistant, server:
     assert entry.state is ConfigEntryState.LOADED
     assert hass.states.get("sensor.house_testhold_holdings").state == "12"
     assert hass.states.get("sensor.house_testhold_holdings").attributes["list"] == []
+
+
+
+async def test_optional_route_forbidden_keeps_running_and_retries_hourly(hass: HomeAssistant, server: FakeAshenmarch, freezer) -> None:
+    # Production answered the new holdings route with 403 token_scope before it was deployed (2026-10-20):
+    # that must switch only the holdings list off, never the House.
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    server.holdings_status = 403
+    entry = make_entry()
+    await setup(hass, entry)
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get("sensor.house_testhold_holdings").state == "12"
+    server.calls.clear()
+    await poll(hass, entry)
+    assert not [c for c in server.calls if c[0] == "/players/me/holdings"]  # not hammered every 5 minutes
+    server.holdings_status = 200
+    freezer.tick(timedelta(minutes=61))
+    await poll(hass, entry)
+    assert len(hass.states.get("sensor.house_testhold_holdings").attributes["list"]) == 2

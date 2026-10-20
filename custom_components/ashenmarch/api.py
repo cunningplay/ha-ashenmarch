@@ -37,7 +37,8 @@ class AshenmarchRateLimited(AshenmarchError):
 
 
 class AshenmarchNotAvailable(AshenmarchError):
-    """404: the server doesn't have this route (yet)."""
+    """404, or 403 token_scope: this route isn't there (yet) for a personal access token.
+    Optional features treat it as "not now" and retry later; it never takes the integration down."""
 
 
 @dataclass
@@ -93,6 +94,9 @@ class AshenmarchApi:
                     raise AshenmarchAuthError(await _error_code(resp))
                 if resp.status == 404:
                     raise AshenmarchNotAvailable(path)
+                if resp.status == 403:
+                    # token_scope: the server doesn't allow a token on this route (not deployed yet, or not allowlisted).
+                    raise AshenmarchNotAvailable(f"{path}: {await _error_code(resp) or 'forbidden'}")
                 if resp.status == 429 or resp.status >= 500:
                     raise AshenmarchRateLimited(
                         f"{path}: HTTP {resp.status}", _retry_after(resp.headers.get("Retry-After"))
