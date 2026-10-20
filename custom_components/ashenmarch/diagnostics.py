@@ -38,6 +38,8 @@ async def async_get_config_entry_diagnostics(
         "skipped_out_of_area": list(coordinator.skipped),
         "rank_progress": (data.rank or {}).get("fraction") if data else None,
         "recent_events": len(data.recent) if data else 0,
+        "holdings_listed": len(data.holdings) if data else 0,
+        "holdings_list_available": coordinator.holdings_available,
         "update_interval_s": coordinator.update_interval.total_seconds()
         if coordinator.update_interval
         else None,

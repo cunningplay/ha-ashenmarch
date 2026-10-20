@@ -26,6 +26,7 @@ from custom_components.ashenmarch.const import (
 from custom_components.ashenmarch.diagnostics import async_get_config_entry_diagnostics
 
 from .conftest import (
+    holding,
     HOME,
     PLAYER_A,
     PLAYER_B,
@@ -529,3 +530,44 @@ async def test_empty_recent_is_seeded_once_without_firing(hass: HomeAssistant, s
     assert [e["id"] for e in hass.states.get("sensor.house_testhold_last_event").attributes["recent"]] == ["old2", "old1"]
     assert fired == []
     assert [c for c in server.calls if c[0] == "/players/me/events"][-1][2].get("since") == "2"  # the cursor didn't move
+
+
+# ---------------- v0.3.0: holdings list ----------------
+
+
+async def test_holdings_list_without_coordinates(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    lst = hass.states.get("sensor.house_testhold_holdings").attributes["list"]
+    assert [h["name"] for h in lst] == ["Owl Flight", "Pitchfork"]  # the server's order (soonest decay first)
+    assert lst[0]["zone_name"] == "test home" and lst[0]["distance_km"] == pytest.approx(3.2, abs=0.1)
+    assert lst[0]["state"] == "active" and lst[0]["decays_at"] == "2026-10-22T08:00:00Z"
+    assert "center" not in str(lst) and "bbox" not in str(lst)
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    assert diag["holdings_listed"] == 2 and "Owl Flight" not in str(diag) and "bbox" not in str(diag)
+
+
+async def test_holdings_use_etag_and_follow_changes(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    server.calls.clear()
+    await poll(hass, entry)
+    call = next(c for c in server.calls if c[0] == "/players/me/holdings")
+    assert "If-None-Match" in call[1]
+    assert len(hass.states.get("sensor.house_testhold_holdings").attributes["list"]) == 2  # kept on a 304
+    p.holdings = [holding("Owl Flight", north_of(HOME, 2), None, state="contested")]
+    await poll(hass, entry)
+    lst = hass.states.get("sensor.house_testhold_holdings").attributes["list"]
+    assert len(lst) == 1 and lst[0]["state"] == "contested"
+
+
+async def test_holdings_route_missing_keeps_running(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    server.holdings_status = 404
+    entry = make_entry()
+    await setup(hass, entry)
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get("sensor.house_testhold_holdings").state == "12"
+    assert hass.states.get("sensor.house_testhold_holdings").attributes["list"] == []

@@ -28,15 +28,15 @@ def _dt(value: Any) -> datetime | None:
     return dt_util.parse_datetime(value) if isinstance(value, str) else None
 
 
-def _holdings_attrs(s: dict[str, Any]) -> dict[str, Any]:
+def _holdings_attrs(d: Any) -> dict[str, Any]:
+    s = d.summary
     area = s.get("area_m2")
-    if area is None:
-        return {}
-    return {
-        "area_m2": area,
-        "area_km2": round(area / 1e6, 3),
-        "area_mi2": round(area / 2_589_988.11, 3),
-    }
+    out: dict[str, Any] = {}
+    if area is not None:
+        out |= {"area_m2": area, "area_km2": round(area / 1e6, 3), "area_mi2": round(area / 2_589_988.11, 3)}
+    # The holdings themselves (ASH-3754), soonest decay first, with the nearest alert zone; never coordinates.
+    out["list"] = d.holdings
+    return out
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -46,7 +46,7 @@ class AshenmarchSensorDescription(SensorEntityDescription):
     value: Callable[[Any], Any]
     attrs: Callable[[Any], dict[str, Any]] | None = None
     crest_picture: bool = False
-    source: str = "summary"  # which part of the data the value reads: summary, rank, profile or recent (a list)
+    source: str = "summary"  # which part of the data the value reads: summary, rank, profile, recent (a list) or all
     unrecorded: frozenset[str] = frozenset()
 
 
@@ -55,9 +55,11 @@ SENSORS: tuple[AshenmarchSensorDescription, ...] = (
         key="holdings",
         icon="mdi:castle",
         state_class=SensorStateClass.MEASUREMENT,
-        value=lambda s: s.get("holdings"),
+        source="all",
+        value=lambda d: d.summary.get("holdings"),
         attrs=_holdings_attrs,
         crest_picture=True,
+        unrecorded=frozenset({"list"}),
     ),
     AshenmarchSensorDescription(
         key="under_siege_count",
@@ -151,6 +153,8 @@ class AshenmarchSensor(AshenmarchEntity, SensorEntity):
         self._unrecorded_attributes = description.unrecorded
 
     def _source(self) -> Any:
+        if self.entity_description.source == "all":
+            return self.coordinator.data
         return getattr(self.coordinator.data, self.entity_description.source)
 
     @property

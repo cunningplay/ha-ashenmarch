@@ -28,7 +28,7 @@ One device per player, named after the House ("House Cunningham").
 
 | Entity | What it shows |
 |---|---|
-| `sensor.<house>_holdings` | Holdings you hold. Attributes: area in m², km² and mi². Its picture is your coat of arms. |
+| `sensor.<house>_holdings` | Holdings you hold. Attributes: area in m², km² and mi², and `list`: each holding (name, area, tier, when it fades, state, siege role) with the nearest alert zone and its distance, soonest fade first; never coordinates. Its picture is your coat of arms. |
 | `sensor.<house>_holdings_under_siege` | How many of them are contested right now. |
 | `sensor.<house>_next_to_fade` | When your next holding decays (timestamp). |
 | `sensor.<house>_rank` | Your position on your home city's board. Attributes: `region`, `title` (e.g. Baron). |

@@ -82,6 +82,7 @@ class AshenmarchData:
     rank: dict[str, Any] = field(default_factory=dict)  # /players/me/rank, hourly
     profile: dict[str, Any] = field(default_factory=dict)  # total_area_claimed_m2, first_claim_at (hourly)
     recent: list[dict[str, Any]] = field(default_factory=list)  # the last events, newest first
+    holdings: list[dict[str, Any]] = field(default_factory=list)  # soonest decay first, no coordinates
 
 
 def display_unit(hass: HomeAssistant) -> str:
@@ -123,6 +124,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._rank: dict[str, Any] = {}
         self._profile: dict[str, Any] = {}
         self._slow_at: datetime | None = None  # when profile + rank were last read
+        self._holdings: list[dict[str, Any]] = []
+        self._holdings_etag: str | None = None
+        self.holdings_available = True
         self.events_available = True
         self.crest_available = True
         self._device_id: str | None = None
@@ -150,6 +154,8 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._rank = stored.get("rank") or {}
         self._profile = stored.get("profile") or {}
         self._slow_at = dt_util.parse_datetime(stored.get("slow_at") or "")
+        self._holdings = stored.get("holdings") or []
+        self._holdings_etag = stored.get("holdings_etag")
 
     async def _async_save(self) -> None:
         await self._store.async_save(
@@ -168,6 +174,8 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 "rank": self._rank,
                 "profile": self._profile,
                 "slow_at": self._slow_at.isoformat() if self._slow_at else None,
+                "holdings": self._holdings,
+                "holdings_etag": self._holdings_etag,
             }
         )
 
@@ -180,6 +188,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
     async def _async_update_data(self) -> AshenmarchData:
         try:
             await self._async_poll_summary()
+            await self._async_poll_holdings()
             await self._async_poll_events()
             await self._async_poll_crest()
             await self._async_poll_slow()
@@ -205,6 +214,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             rank=dict(self._rank),
             profile=dict(self._profile),
             recent=list(self._recent),
+            holdings=list(self._holdings),
         )
 
     async def _async_poll_summary(self) -> None:
@@ -215,6 +225,35 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         # No siege anywhere in the realm: none can be open nearby either.
         if self._summary and not self._summary.get("under_siege"):
             self._nearby.clear()
+
+    async def _async_poll_holdings(self) -> None:
+        """The holdings list (ASH-3754), with an ETag. Coordinates are only used here, to name the nearest alert zone;
+        they never reach HA's state or the Store."""
+        if not self.holdings_available:
+            return
+        try:
+            fetched = await self.api.get_holdings(self._holdings_etag)
+        except AshenmarchNotAvailable:
+            _LOGGER.info("The Ashenmarch holdings list isn't available yet")
+            self.holdings_available = False
+            return
+        self._holdings_etag = fetched.etag
+        if fetched.not_modified or not isinstance(fetched.data, dict):
+            return
+        zones = self.alert_area().zones
+        out = []
+        for h in fetched.data.get("holdings") or []:
+            if not isinstance(h, dict):
+                continue
+            nearest = zone_distances(h, zones)
+            out.append(
+                {
+                    **{k: h.get(k) for k in ("name", "area_m2", "tier_name", "decays_at", "decay_pct", "state", "siege_role", "breached")},
+                    "zone_name": nearest[0].zone.name if nearest else None,
+                    "distance_km": round(nearest[0].distance_km, 1) if nearest else None,
+                }
+            )
+        self._holdings = out
 
     async def _async_poll_events(self) -> None:
         if not self.events_available:

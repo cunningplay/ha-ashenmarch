@@ -63,6 +63,12 @@ def event(eid: str, etype: str, at: tuple[float, float] | None, player: str = PL
     return ev
 
 
+def holding(name: str, at: tuple[float, float], decays_at: str | None, state: str = "active") -> dict[str, Any]:
+    t = territory(at, tid="h-" + name, name=name)
+    return {"id": t["id"], "name": name, "area_m2": 250000, "tier_name": "Hamlet", "decays_at": decays_at, "decay_pct": 0.35,
+            "state": state, "contested_at": None, "siege_role": None, "breached": False, "center": t["center"], "bbox": t["bbox"]}
+
+
 def wrist(**overrides) -> dict[str, Any]:
     s = {
         "under_siege": 0,
@@ -91,6 +97,8 @@ class Player:
     summary: dict[str, Any] = field(default_factory=wrist)
     events: list[dict[str, Any]] = field(default_factory=list)
     status: int = 200  # 401 to revoke the token
+    holdings: list[dict[str, Any]] = field(default_factory=lambda: [holding("Owl Flight", north_of(HOME, 2), "2026-10-22T08:00:00Z"),
+                                                                     holding("Pitchfork", north_of(HOME, -40), "2026-10-30T19:26:50Z")])
 
 
 class FakeAshenmarch:
@@ -102,8 +110,9 @@ class FakeAshenmarch:
         self.wrist_status = 200
         self.events_status = 200
         self.crest_status = 200
+        self.holdings_status = 200
         self.calls: list[tuple[str, dict[str, str], dict[str, Any]]] = []
-        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank"):
+        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank", "/players/me/holdings"):
             mocker.get(f"{API_BASE}{path}", side_effect=self._handle)
 
     def add(self, player: Player) -> Player:
@@ -124,6 +133,13 @@ class FakeAshenmarch:
         if path == "/players/me":
             return AiohttpClientMockResponse(method, url, json={"id": p.player_id, "house_name": p.house, "locale": "en", "rank": "knight", "email": "player@example.com", "created_at": "x", "updated_at": "x",
                                                                 "total_area_claimed_m2": 5100000, "first_claim_at": "2026-06-01T10:00:00Z"})
+        if path == "/players/me/holdings":
+            if self.holdings_status != 200:
+                return AiohttpClientMockResponse(method, url, status=self.holdings_status)
+            etag = f'W/"{hash(str(p.holdings))}"'
+            if headers.get("If-None-Match") == etag:
+                return AiohttpClientMockResponse(method, url, status=304, headers={"ETag": etag})
+            return AiohttpClientMockResponse(method, url, json={"holdings": p.holdings}, headers={"ETag": etag})
         if path == "/players/me/rank":
             return AiohttpClientMockResponse(method, url, json={"rank": "knight", "next_rank": "baron", "points": 1240.5, "tier_floor": 900, "next_threshold": 1450,
                                                                 "fraction": 0.62, "area_claimed_m2": 5100000, "next_area_m2": 8000000, "current_index": 3,

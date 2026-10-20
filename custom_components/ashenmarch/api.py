@@ -108,6 +108,10 @@ class AshenmarchApi:
         """The player's profile basics (id, house_name, locale, ...)."""
         return (await self._get("/players/me")).data
 
+    async def get_holdings(self, etag: str | None = None) -> Fetched:
+        """The player's holdings, soonest decay first (ASH-3754); 304 while unchanged."""
+        return await self._get("/players/me/holdings", etag=etag)
+
     async def get_rank(self) -> dict[str, Any]:
         """Rank progress: points, fraction to the next rank, the ladder with display names."""
         return (await self._get("/players/me/rank")).data
