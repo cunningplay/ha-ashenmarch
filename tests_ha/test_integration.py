@@ -590,3 +590,11 @@ async def test_optional_route_forbidden_keeps_running_and_retries_hourly(hass: H
     freezer.tick(timedelta(minutes=61))
     await poll(hass, entry)
     assert len(hass.states.get("sensor.house_testhold_holdings").attributes["list"]) == 2
+
+
+
+async def test_crest_carries_tincture(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    await setup(hass, make_entry())
+    a = hass.states.get("image.house_testhold_coat_of_arms").attributes
+    assert a["tincture"] == "#7A1F2B" and a["crest_id"] == "crest-v1"

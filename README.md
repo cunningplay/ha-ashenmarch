@@ -39,7 +39,7 @@ One device per player, named after the House ("House Cunningham").
 | `sensor.<house>_last_updated` | When the server computed the summary (diagnostic). |
 | `binary_sensor.<house>_under_siege` | On while **any** holding in the realm is contested. |
 | `binary_sensor.<house>_under_siege_nearby` | On while a siege is open **near one of your alert zones**. Attribute `zones`: which zones (e.g. `["Home"]`), `territories`: which holdings. |
-| `image.<house>_coat_of_arms` | Your coat of arms. Downloaded by Home Assistant with your token and served through HA itself; your browser never talks to Ashenmarch. |
+| `image.<house>_coat_of_arms` | Your coat of arms. Downloaded by Home Assistant with your token and served through HA itself; your browser never talks to Ashenmarch. Attributes: `tincture` (the arms' field colour, for theming) and `crest_id`. |
 
 Home Assistant polls every 5 minutes (it backs off if the server is busy), and only downloads the summary and the crest again when they changed.
 

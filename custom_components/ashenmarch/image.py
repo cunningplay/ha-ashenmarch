@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from homeassistant.components.image import ImageEntity
+from typing import Any
+
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -43,6 +45,12 @@ class CoatOfArms(AshenmarchEntity, ImageEntity):
             self._cached_image = None
             self._attr_image_last_updated = updated
         super()._handle_coordinator_update()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The arms' field colour (for theming a House's page) and version."""
+        s = self.coordinator.data.summary if self.coordinator.data else {}
+        return {"tincture": s.get("tincture"), "crest_id": s.get("crest_id")}
 
     async def async_image(self) -> bytes | None:
         """The PNG as last downloaded."""
