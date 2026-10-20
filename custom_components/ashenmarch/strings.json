@@ -66,9 +66,15 @@
       "holdings": {
         "name": "Holdings",
         "state_attributes": {
-          "area_m2": { "name": "Area (m²)" },
-          "area_km2": { "name": "Area (km²)" },
-          "area_mi2": { "name": "Area (mi²)" }
+          "area_m2": {
+            "name": "Area (m²)"
+          },
+          "area_km2": {
+            "name": "Area (km²)"
+          },
+          "area_mi2": {
+            "name": "Area (mi²)"
+          }
         }
       },
       "under_siege_count": {
@@ -80,12 +86,25 @@
       "rank": {
         "name": "Rank",
         "state_attributes": {
-          "region": { "name": "Region" },
-          "title": { "name": "Title" }
+          "region": {
+            "name": "Region"
+          },
+          "title": {
+            "name": "Title"
+          }
         }
       },
       "week_distance": {
         "name": "Distance this week"
+      },
+      "rank_progress": {
+        "name": "Rank progress"
+      },
+      "area_ever_claimed": {
+        "name": "Area ever claimed"
+      },
+      "last_event": {
+        "name": "Last event"
       },
       "last_updated": {
         "name": "Last updated"
@@ -98,8 +117,12 @@
       "under_siege_nearby": {
         "name": "Under siege nearby",
         "state_attributes": {
-          "zones": { "name": "Zones" },
-          "territories": { "name": "Territories" }
+          "zones": {
+            "name": "Zones"
+          },
+          "territories": {
+            "name": "Territories"
+          }
         }
       }
     },

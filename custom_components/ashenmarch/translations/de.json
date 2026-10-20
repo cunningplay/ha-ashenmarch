@@ -97,6 +97,15 @@
       "week_distance": {
         "name": "Strecke diese Woche"
       },
+      "rank_progress": {
+        "name": "Rangfortschritt"
+      },
+      "area_ever_claimed": {
+        "name": "Insgesamt eroberte Fläche"
+      },
+      "last_event": {
+        "name": "Letztes Ereignis"
+      },
       "last_updated": {
         "name": "Zuletzt aktualisiert"
       }

@@ -103,7 +103,7 @@ class FakeAshenmarch:
         self.events_status = 200
         self.crest_status = 200
         self.calls: list[tuple[str, dict[str, str], dict[str, Any]]] = []
-        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png"):
+        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank"):
             mocker.get(f"{API_BASE}{path}", side_effect=self._handle)
 
     def add(self, player: Player) -> Player:
@@ -122,7 +122,13 @@ class FakeAshenmarch:
         if p is None or p.status == 401:
             return AiohttpClientMockResponse(method, url, status=401, json={"error": "unauthorized", "message": "x"})
         if path == "/players/me":
-            return AiohttpClientMockResponse(method, url, json={"id": p.player_id, "house_name": p.house, "locale": "en", "rank": "baron", "email": "player@example.com", "created_at": "x", "updated_at": "x"})
+            return AiohttpClientMockResponse(method, url, json={"id": p.player_id, "house_name": p.house, "locale": "en", "rank": "knight", "email": "player@example.com", "created_at": "x", "updated_at": "x",
+                                                                "total_area_claimed_m2": 5100000, "first_claim_at": "2026-06-01T10:00:00Z"})
+        if path == "/players/me/rank":
+            return AiohttpClientMockResponse(method, url, json={"rank": "knight", "next_rank": "baron", "points": 1240.5, "tier_floor": 900, "next_threshold": 1450,
+                                                                "fraction": 0.62, "area_claimed_m2": 5100000, "next_area_m2": 8000000, "current_index": 3,
+                                                                "ladder": [{"key": "knight", "name": "Knight", "milestone_gated": False, "achieved": True},
+                                                                           {"key": "baron", "name": "Baron", "milestone_gated": True, "achieved": False}]})
         if path == "/players/me/wrist-summary":
             if self.wrist_status != 200:
                 return AiohttpClientMockResponse(method, url, status=self.wrist_status)

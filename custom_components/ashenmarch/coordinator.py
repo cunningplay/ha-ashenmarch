@@ -49,7 +49,9 @@ from .const import (
     SEEN_IDS_CAP,
     SIEGE_ENDED,
     SIEGE_STARTED,
+    RECENT_CAP,
     SKIPPED_CAP,
+    SLOW_INTERVAL,
     STORAGE_VERSION,
 )
 from .geo import Zone, ZoneMatch, default_radius, format_distance, from_km, to_km, zone_distances
@@ -77,6 +79,9 @@ class AshenmarchData:
     nearby: dict[str, dict[str, Any]] = field(default_factory=dict)  # territory id -> {name, zones}
     crest: bytes | None = None
     crest_updated: datetime | None = None
+    rank: dict[str, Any] = field(default_factory=dict)  # /players/me/rank, hourly
+    profile: dict[str, Any] = field(default_factory=dict)  # total_area_claimed_m2, first_claim_at (hourly)
+    recent: list[dict[str, Any]] = field(default_factory=list)  # the last events, newest first
 
 
 def display_unit(hass: HomeAssistant) -> str:
@@ -114,6 +119,10 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._crest_id: str | None = None
         self._crest_fetched: datetime | None = None
         self.skipped: deque[dict[str, Any]] = deque(maxlen=SKIPPED_CAP)
+        self._recent: deque[dict[str, Any]] = deque(maxlen=RECENT_CAP)  # newest first
+        self._rank: dict[str, Any] = {}
+        self._profile: dict[str, Any] = {}
+        self._slow_at: datetime | None = None  # when profile + rank were last read
         self.events_available = True
         self.crest_available = True
         self._device_id: str | None = None
@@ -137,6 +146,10 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._crest_id = stored.get("crest_id")
         self._crest_fetched = dt_util.parse_datetime(stored.get("crest_fetched") or "")
         self.skipped.extend(stored.get("skipped") or [])
+        self._recent.extend(stored.get("recent") or [])
+        self._rank = stored.get("rank") or {}
+        self._profile = stored.get("profile") or {}
+        self._slow_at = dt_util.parse_datetime(stored.get("slow_at") or "")
 
     async def _async_save(self) -> None:
         await self._store.async_save(
@@ -151,6 +164,10 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 "crest_id": self._crest_id,
                 "crest_fetched": self._crest_fetched.isoformat() if self._crest_fetched else None,
                 "skipped": list(self.skipped),
+                "recent": list(self._recent),
+                "rank": self._rank,
+                "profile": self._profile,
+                "slow_at": self._slow_at.isoformat() if self._slow_at else None,
             }
         )
 
@@ -165,6 +182,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             await self._async_poll_summary()
             await self._async_poll_events()
             await self._async_poll_crest()
+            await self._async_poll_slow()
         except AshenmarchAuthError as err:
             raise ConfigEntryAuthFailed(f"Ashenmarch refused the token ({err})") from err
         except AshenmarchRateLimited as err:
@@ -184,6 +202,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             nearby={k: dict(v) for k, v in self._nearby.items()},
             crest=self._crest,
             crest_updated=self._crest_fetched,
+            rank=dict(self._rank),
+            profile=dict(self._profile),
+            recent=list(self._recent),
         )
 
     async def _async_poll_summary(self) -> None:
@@ -242,6 +263,36 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         if not fetched.not_modified and fetched.data:
             self._crest = bytes(fetched.data)
 
+    async def _async_poll_slow(self) -> None:
+        """Profile and rank progress, at most once an hour: they move slowly. A failure here keeps the old values
+        and is retried on the next poll; it never fails the realm summary (only a refused token does)."""
+        now = dt_util.utcnow()
+        if self._slow_at is not None and now - self._slow_at < SLOW_INTERVAL:
+            return
+        try:
+            me = await self.api.get_me()
+            rank = await self.api.get_rank()
+        except AshenmarchAuthError:
+            raise
+        except AshenmarchError as err:
+            _LOGGER.debug("Ashenmarch profile/rank not read this time: %s", err)
+            return
+        if isinstance(me, dict):
+            self._profile = {k: me.get(k) for k in ("total_area_claimed_m2", "first_claim_at", "house_name")}
+        if isinstance(rank, dict):
+            names = {r.get("key"): r.get("name") for r in rank.get("ladder") or [] if isinstance(r, dict)}
+            self._rank = {
+                "rank": rank.get("rank"),
+                "rank_name": names.get(rank.get("rank")),
+                "next_rank": rank.get("next_rank"),
+                "next_rank_name": names.get(rank.get("next_rank")),
+                "fraction": rank.get("fraction"),
+                "points": rank.get("points"),
+                "next_threshold": rank.get("next_threshold"),
+                "next_area_m2": rank.get("next_area_m2"),
+            }
+        self._slow_at = now
+
     # ---- alert area ----
 
     def alert_area(self) -> AlertArea:
@@ -298,6 +349,17 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._seen.append(event_id)
         etype = event.get("type")
         territory = event.get("territory") or None
+        data = event.get("data") or {}
+        self._recent.appendleft(
+            {
+                "id": event_id,
+                "type": etype,
+                "at": event.get("at"),
+                "message": event.get("message"),
+                "territory": (territory or {}).get("name"),
+                **{k: data[k] for k in ("outcome", "distance_m", "new_holding", "area_new_m2") if k in data},
+            }
+        )
         distances = zone_distances(territory, area.zones)
         within = [m for m in distances if m.distance_km <= area.radius_km]
 

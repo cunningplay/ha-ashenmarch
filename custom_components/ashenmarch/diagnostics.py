@@ -36,6 +36,8 @@ async def async_get_config_entry_diagnostics(
         "crest_available": coordinator.crest_available,
         # Out-of-area events still advance the cursor; the latest are kept here.
         "skipped_out_of_area": list(coordinator.skipped),
+        "rank_progress": (data.rank or {}).get("fraction") if data else None,
+        "recent_events": len(data.recent) if data else 0,
         "update_interval_s": coordinator.update_interval.total_seconds()
         if coordinator.update_interval
         else None,

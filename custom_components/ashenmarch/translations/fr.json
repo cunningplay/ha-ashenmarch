@@ -97,6 +97,15 @@
       "week_distance": {
         "name": "Distance cette semaine"
       },
+      "rank_progress": {
+        "name": "Progression du rang"
+      },
+      "area_ever_claimed": {
+        "name": "Superficie conquise au total"
+      },
+      "last_event": {
+        "name": "Dernier événement"
+      },
       "last_updated": {
         "name": "Dernière mise à jour"
       }

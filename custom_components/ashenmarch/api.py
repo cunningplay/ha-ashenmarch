@@ -108,6 +108,10 @@ class AshenmarchApi:
         """The player's profile basics (id, house_name, locale, ...)."""
         return (await self._get("/players/me")).data
 
+    async def get_rank(self) -> dict[str, Any]:
+        """Rank progress: points, fraction to the next rank, the ladder with display names."""
+        return (await self._get("/players/me/rank")).data
+
     async def get_wrist_summary(self, etag: str | None = None) -> Fetched:
         """The tiny realm summary (ASH-3709); 304 while the realm is unchanged."""
         return await self._get("/players/me/wrist-summary", etag=etag)

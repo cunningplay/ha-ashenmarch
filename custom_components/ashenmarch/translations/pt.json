@@ -97,6 +97,15 @@
       "week_distance": {
         "name": "Distância esta semana"
       },
+      "rank_progress": {
+        "name": "Progresso de patente"
+      },
+      "area_ever_claimed": {
+        "name": "Área conquistada no total"
+      },
+      "last_event": {
+        "name": "Último evento"
+      },
       "last_updated": {
         "name": "Última atualização"
       }

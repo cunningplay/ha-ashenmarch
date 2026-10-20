@@ -33,6 +33,9 @@ One device per player, named after the House ("House Cunningham").
 | `sensor.<house>_next_to_fade` | When your next holding decays (timestamp). |
 | `sensor.<house>_rank` | Your position on your home city's board. Attributes: `region`, `title` (e.g. Baron). |
 | `sensor.<house>_distance_this_week` | Distance marched since Monday, in your HA units. |
+| `sensor.<house>_rank_progress` | Progress to the next rank, in %. Attributes: `rank_name`, `next_rank_name`, `points`, `next_threshold`, `next_area_m2`. Read hourly. |
+| `sensor.<house>_area_ever_claimed` | All the area you've ever claimed (it never goes down). Attribute: `first_claim_at`. Read hourly. |
+| `sensor.<house>_last_event` | When the last realm event happened. Attributes: `type`, and `recent`: the last 20 events, newest first, with the Herald's `message` and the territory's name (kept even when an event was outside your alert area; never coordinates). |
 | `sensor.<house>_last_updated` | When the server computed the summary (diagnostic). |
 | `binary_sensor.<house>_under_siege` | On while **any** holding in the realm is contested. |
 | `binary_sensor.<house>_under_siege_nearby` | On while a siege is open **near one of your alert zones**. Attribute `zones`: which zones (e.g. `["Home"]`), `territories`: which holdings. |

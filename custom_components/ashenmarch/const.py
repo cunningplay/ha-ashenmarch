@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ashenmarch"
 MANUFACTURER = "Ashenmarch"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 API_BASE = "https://api.ashenmarch.com/v1"
 PORTAL_TOKENS_URL = "https://ashenmarch.com/portal/profile"
@@ -35,6 +35,7 @@ NEAREST_ZONE_MAX_KM = 160.934  # 100 mi
 SCAN_INTERVAL = timedelta(minutes=5)
 MAX_BACKOFF = timedelta(minutes=60)
 CREST_MAX_AGE = timedelta(days=1)
+SLOW_INTERVAL = timedelta(hours=1)  # profile (ever claimed) and rank progress
 EVENTS_PAGE_LIMIT = 50
 EVENTS_MAX_PAGES = 10  # per poll; the rest comes next poll
 
@@ -54,5 +55,6 @@ AREA_FILTERED_TYPES = {SIEGE_STARTED, SIEGE_ENDED, HOLDING_LOST, HOLDING_WON, FA
 STORAGE_VERSION = 1
 SEEN_IDS_CAP = 500
 SKIPPED_CAP = 25  # out-of-area events kept for the diagnostics
+RECENT_CAP = 20  # events kept per House for its details page (recent attribute)
 
 ISSUE_NO_ZONES = "no_zones"

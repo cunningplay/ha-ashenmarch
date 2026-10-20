@@ -441,3 +441,76 @@ async def test_polls_every_5_minutes(hass: HomeAssistant, server: FakeAshenmarch
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=5, seconds=1))
     await hass.async_block_till_done()
     assert hass.states.get("sensor.house_testhold_holdings").state == "13"
+
+
+# ---------------- v0.2.0: rank progress, ever claimed, recent events ----------------
+
+
+async def test_rank_progress_and_ever_claimed_hourly(hass: HomeAssistant, server: FakeAshenmarch, freezer) -> None:
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    rp = hass.states.get("sensor.house_testhold_rank_progress")
+    assert rp.state == "62" and rp.attributes["next_rank_name"] == "Baron" and rp.attributes["rank_name"] == "Knight"
+    ever = hass.states.get("sensor.house_testhold_area_ever_claimed")
+    assert float(ever.state) == pytest.approx(1.97, abs=0.01)  # 5.1 km² shown in mi² on a US-customary HA
+    assert ever.attributes["first_claim_at"] == "2026-06-01T10:00:00Z"
+
+    server.calls.clear()
+    await poll(hass, entry)
+    assert not [c for c in server.calls if c[0] == "/players/me/rank"]  # not again within the hour
+    freezer.tick(timedelta(minutes=61))
+    await poll(hass, entry)
+    assert [c for c in server.calls if c[0] == "/players/me/rank"]
+
+
+async def test_recent_events_newest_first_and_survive_restart(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    p.events.append(event("n1", "holding_won", north_of(HOME, 1)))
+    p.events.append(event("f1", "holding_won", north_of(HOME, -400)))  # outside the alert area: kept anyway
+    p.events.append(event("m1", "march_filed", None, distance_m=4200, new_holding=True))
+    await poll(hass, entry)
+    last = hass.states.get("sensor.house_testhold_last_event")
+    recent = last.attributes["recent"]
+    assert [e["id"] for e in recent] == ["m1", "f1", "n1"]
+    assert last.attributes["type"] == "march_filed" and recent[0]["distance_m"] == 4200
+    assert recent[1]["territory"] == "Ashford Mill" and "center" not in str(recent)
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert [e["id"] for e in hass.states.get("sensor.house_testhold_last_event").attributes["recent"]] == ["m1", "f1", "n1"]
+
+
+async def test_recent_keeps_twenty(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    for k in range(25):
+        p.events.append(event(f"e{k}", "march_filed", None))
+    await poll(hass, entry)
+    recent = hass.states.get("sensor.house_testhold_last_event").attributes["recent"]
+    assert len(recent) == 20 and recent[0]["id"] == "e24"
+
+
+async def test_rank_failure_keeps_the_realm_running(hass: HomeAssistant, server: FakeAshenmarch, aioclient_mock) -> None:
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    entry = make_entry()
+    await setup(hass, entry)
+    entry.runtime_data._slow_at = None  # due again
+    orig = server._handle
+
+    async def flaky(method, url, data):
+        if url.path.endswith("/players/me/rank"):
+            from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+            return AiohttpClientMockResponse(method, url, status=503)
+        return await orig(method, url, data)
+
+    for m in aioclient_mock._mocks:
+        m.side_effect = flaky
+    p.summary = wrist(holdings=14)
+    await poll(hass, entry)
+    assert entry.runtime_data.last_update_success
+    assert hass.states.get("sensor.house_testhold_holdings").state == "14"
+    assert hass.states.get("sensor.house_testhold_rank_progress").state == "62"  # previous value kept
