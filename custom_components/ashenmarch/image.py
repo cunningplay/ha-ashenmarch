@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.components.image import ImageEntity
 from typing import Any
 
+from homeassistant.components.image import ImageEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
