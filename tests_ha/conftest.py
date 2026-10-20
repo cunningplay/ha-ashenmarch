@@ -63,10 +63,13 @@ def event(eid: str, etype: str, at: tuple[float, float] | None, player: str = PL
     return ev
 
 
-def holding(name: str, at: tuple[float, float], decays_at: str | None, state: str = "active") -> dict[str, Any]:
+def holding(name: str, at: tuple[float, float], decays_at: str | None, state: str = "active", tier_progress: dict | None = None) -> dict[str, Any]:
     t = territory(at, tid="h-" + name, name=name)
-    return {"id": t["id"], "name": name, "area_m2": 250000, "tier_name": "Hamlet", "decays_at": decays_at, "decay_pct": 0.35,
-            "state": state, "contested_at": None, "siege_role": None, "breached": False, "center": t["center"], "bbox": t["bbox"]}
+    h = {"id": t["id"], "name": name, "area_m2": 250000, "tier_name": "Hamlet", "decays_at": decays_at, "decay_pct": 0.35,
+         "state": state, "contested_at": None, "siege_role": None, "breached": False, "center": t["center"], "bbox": t["bbox"]}
+    if tier_progress is not None:
+        h["tier_progress"] = tier_progress
+    return h
 
 
 def wrist(**overrides) -> dict[str, Any]:

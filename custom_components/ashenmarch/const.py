@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ashenmarch"
 MANUFACTURER = "Ashenmarch"
-VERSION = "0.3.2"
+VERSION = "0.4.0"
 
 API_BASE = "https://api.ashenmarch.com/v1"
 PORTAL_TOKENS_URL = "https://ashenmarch.com/portal/profile"

@@ -132,10 +132,8 @@ class AshenmarchApi:
         return (await self._get("/players/me/events", params=params)).data
 
     async def get_coat_of_arms(self, etag: str | None = None) -> Fetched:
-        """The player's arms as a PNG (banner style); 304 while unchanged."""
-        return await self._get(
-            "/players/me/coat-of-arms.png", params={"style": "banner"}, etag=etag, binary=True
-        )
+        """The player's arms as a square transparent PNG (ASH-3750; the gold seal when there are none); 304 while unchanged."""
+        return await self._get("/players/me/coat-of-arms.png", params={"size": 256}, etag=etag, binary=True)
 
 
 async def _error_code(resp: aiohttp.ClientResponse) -> str:

@@ -262,13 +262,13 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             if not isinstance(h, dict):
                 continue
             nearest = zone_distances(h, zones)
-            out.append(
-                {
-                    **{k: h.get(k) for k in ("name", "area_m2", "tier_name", "decays_at", "decay_pct", "state", "siege_role", "breached")},
-                    "zone_name": nearest[0].zone.name if nearest else None,
-                    "distance_km": round(nearest[0].distance_km, 1) if nearest else None,
-                }
-            )
+            item = {
+                **{k: h.get(k) for k in ("name", "area_m2", "tier_name", "decays_at", "decay_pct", "state", "siege_role", "breached")},
+                "zone_name": nearest[0].zone.name if nearest else None,
+                "distance_km": round(nearest[0].distance_km, 1) if nearest else None,
+            }
+            item |= _tier_progress(h.get("tier_progress"))
+            out.append(item)
         self._holdings = out
 
     async def _async_poll_events(self) -> None:
@@ -528,4 +528,18 @@ def _recent_entry(event: dict[str, Any]) -> dict[str, Any]:
         "message": event.get("message"),
         "territory": (event.get("territory") or {}).get("name"),
         **{k: data[k] for k in ("outcome", "distance_m", "new_holding", "area_new_m2") if k in data},
+    }
+
+
+def _tier_progress(tp: Any) -> dict[str, Any]:
+    """% to the holding's next tier (ASH-3762/3766); nothing when the server doesn't send it (older backend).
+    Top tier: next_tier_at is null (or a max / is_max flag), shown as 100 %."""
+    if not isinstance(tp, dict):
+        return {}
+    top = bool(tp.get("max") or tp.get("is_max")) or tp.get("next_tier_at") is None
+    pct = tp.get("progress_pct")
+    return {
+        "progress_pct": 100 if top else (int(pct) if isinstance(pct, (int, float)) else None),
+        "next_tier_name": None if top else tp.get("next_tier_name"),
+        "max": top,
     }

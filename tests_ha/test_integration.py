@@ -598,3 +598,30 @@ async def test_crest_carries_tincture(hass: HomeAssistant, server: FakeAshenmarc
     await setup(hass, make_entry())
     a = hass.states.get("image.house_testhold_coat_of_arms").attributes
     assert a["tincture"] == "#7A1F2B" and a["crest_id"] == "crest-v1"
+
+
+
+# ---------------- v0.4.0: % to next tier per holding (ASH-3766) ----------------
+
+
+async def test_holdings_carry_tier_progress_when_sent(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    p.holdings = [
+        holding("Pitchfork", north_of(HOME, 2), "2026-10-30T19:26:50Z",
+                tier_progress={"fortification": 10.5, "tier_floor": 6, "next_tier_at": 14, "next_tier_name": "Stronghold", "progress_pct": 56}),
+        holding("Highgate", north_of(HOME, 3), None,
+                tier_progress={"fortification": 41, "tier_floor": 30, "next_tier_at": None, "next_tier_name": None, "progress_pct": 100}),
+        holding("Old Mill", north_of(HOME, 4), None),  # an older backend: no tier_progress at all
+    ]
+    await setup(hass, make_entry())
+    lst = {h["name"]: h for h in hass.states.get("sensor.house_testhold_holdings").attributes["list"]}
+    assert lst["Pitchfork"]["progress_pct"] == 56 and lst["Pitchfork"]["next_tier_name"] == "Stronghold" and lst["Pitchfork"]["max"] is False
+    assert lst["Highgate"]["max"] is True and lst["Highgate"]["progress_pct"] == 100 and lst["Highgate"]["next_tier_name"] is None
+    assert "progress_pct" not in lst["Old Mill"] and "tier_progress" not in str(lst)
+
+
+async def test_crest_requests_square_size(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
+    await setup(hass, make_entry())
+    call = next(c for c in server.calls if c[0] == "/players/me/coat-of-arms.png")
+    assert call[2].get("size") == "256" and "style" not in call[2]
