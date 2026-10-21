@@ -32,6 +32,10 @@ Real captures from a household Home Assistant with two players.
 
 <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/two-houses.png" alt="Two Houses configured in one Home Assistant" width="720">
 
+**The holdings list** (`sensor.<house>_holdings` → `list`) on a household dashboard: each holding's tier and its % to the next one, and when it fades.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/holdings-tier-progress.png" alt="Holdings with their tier and % to the next tier: Keep 70% to Stronghold" width="640">
+
 A phone notification from the example automation will be added after the next real siege.
 
 ## Install (HACS)
