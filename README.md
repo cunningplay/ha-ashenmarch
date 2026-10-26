@@ -40,9 +40,13 @@ A phone notification from the example automation will be added after the next re
 
 ## Install (HACS)
 
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/cunningplay/ha-ashenmarch`, type **Integration**.
-2. Install **Ashenmarch** and restart Home Assistant.
-3. Settings → Devices & services → **Add integration** → **Ashenmarch**.
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cunningplay&repository=ha-ashenmarch&category=integration)
+
+1. In HACS, search for **Ashenmarch** and download it, then restart Home Assistant.
+2. Settings → Devices & services → **Add integration** → **Ashenmarch**.
+
+Older HACS versions that don't list it yet: HACS → ⋮ → **Custom repositories** → add
+`https://github.com/cunningplay/ha-ashenmarch`, type **Integration**, then follow the steps above.
 
 Requires Home Assistant 2026.10 or later.
 
