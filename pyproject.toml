@@ -1,6 +1,6 @@
 [project]
 name = "ha-ashenmarch"
-version = "0.4.0"
+version = "0.4.1"
 description = "Home Assistant integration for Ashenmarch: a player's realm, coat of arms and alerts near their zones"
 requires-python = ">=3.13"
 license = "MIT"
