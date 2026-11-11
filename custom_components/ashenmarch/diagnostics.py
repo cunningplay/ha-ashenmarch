@@ -1,4 +1,4 @@
-"""Diagnostics: the token is redacted, and no coordinates are included."""
+"""Diagnostics: the token and account identifiers are redacted, and no coordinates are included."""
 
 from __future__ import annotations
 
@@ -7,10 +7,19 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_TOKEN
+from .const import CONF_PLAYER_ID, CONF_TOKEN
 from .coordinator import AshenmarchConfigEntry
 
-TO_REDACT = {CONF_TOKEN}
+# Users attach this file to public issues: drop the token, the account id and every house
+# (player) name, including names quoted inside event messages.
+TO_REDACT = {
+    CONF_TOKEN,
+    CONF_PLAYER_ID,
+    "house_name",
+    "house",
+    "message",
+    "message_with_zone",
+}
 
 
 async def async_get_config_entry_diagnostics(
@@ -29,13 +38,13 @@ async def async_get_config_entry_diagnostics(
             "radius_km": round(area.radius_km, 2),
             "unit": area.unit,
         },
-        "summary": data.summary if data else None,
-        "open_sieges_nearby": data.nearby if data else None,
+        "summary": async_redact_data(data.summary, TO_REDACT) if data else None,
+        "open_sieges_nearby": async_redact_data(data.nearby, TO_REDACT) if data else None,
         "crest_bytes": len(data.crest) if data and data.crest else 0,
         "events_feed_available": coordinator.events_available,
         "crest_available": coordinator.crest_available,
         # Out-of-area events still advance the cursor; the latest are kept here.
-        "skipped_out_of_area": list(coordinator.skipped),
+        "skipped_out_of_area": async_redact_data(list(coordinator.skipped), TO_REDACT),
         "rank_progress": (data.rank or {}).get("fraction") if data else None,
         "recent_events": len(data.recent) if data else 0,
         "holdings_listed": len(data.holdings) if data else 0,

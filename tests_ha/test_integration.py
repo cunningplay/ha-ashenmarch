@@ -415,13 +415,16 @@ async def test_missing_events_feed_keeps_sensors(hass: HomeAssistant, server: Fa
     assert hass.states.get("image.house_testhold_coat_of_arms").state == "unavailable"
 
 
-async def test_diagnostics_redact_token(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+async def test_diagnostics_redact_token_and_identity(hass: HomeAssistant, server: FakeAshenmarch) -> None:
     server.add(Player(TOKEN_A, PLAYER_A, "Testhold"))
     entry = make_entry()
     await setup(hass, entry)
     diag = await async_get_config_entry_diagnostics(hass, entry)
     assert diag["entry"]["token"] == "**REDACTED**"
+    assert diag["entry"]["player_id"] == "**REDACTED**"
+    assert diag["entry"]["house_name"] == "**REDACTED**"
     assert TOKEN_A not in str(diag)
+    assert PLAYER_A not in str(diag) and "Testhold" not in str(diag)
     assert str(HOME[0]) not in str(diag)
 
 
