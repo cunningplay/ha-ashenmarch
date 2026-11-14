@@ -191,6 +191,14 @@
           }
         }
       }
+    },
+    "select": {
+      "ground_picture": {
+        "name": "Bodenbild",
+        "state": {
+          "auto": "Automatisch"
+        }
+      }
     }
   },
   "device_automation": {
@@ -207,6 +215,11 @@
     "no_zones": {
       "title": "Ashenmarch-Benachrichtigungen von {house} haben keine Zone",
       "description": "Keine der für die Benachrichtigungen von {house} gewählten Zonen existiert mehr, daher kommen sie jetzt aus allen Gebieten. Öffne Ashenmarch → Konfigurieren und wähle eine Zone, um sie wieder einzugrenzen."
+    }
+  },
+  "exceptions": {
+    "unknown_holding": {
+      "message": "{holding} ist keiner deiner Besitze mit Boden."
     }
   }
 }

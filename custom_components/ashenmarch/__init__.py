@@ -11,7 +11,7 @@ from homeassistant.helpers.storage import Store
 from .const import DOMAIN, ISSUE_NO_ZONES, STORAGE_VERSION
 from .coordinator import AshenmarchConfigEntry, AshenmarchCoordinator
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.IMAGE, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.IMAGE, Platform.SELECT, Platform.SENSOR]
 
 # The House prefix is the client's to add, localized (the API returns the bare name, D-261),
 # with the same words the Ashenmarch app uses.

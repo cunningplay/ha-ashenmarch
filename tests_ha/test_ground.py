@@ -440,3 +440,45 @@ async def test_upgrade_from_v04_reads_ground(hass: HomeAssistant, server: FakeAs
     assert hass.states.get("image.house_testhold_ground").state != "unavailable"
     assert hass.states.get("sensor.house_testhold_breached_blocks").state == "1"
     assert hass.states.get("sensor.house_testhold_holdings").attributes["list"][0]["ground"]["breached"] == 1
+
+
+# ---------------- v0.6.0: select.<house>_ground_picture ----------------
+
+
+async def test_ground_picture_select(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(breached_player())
+    entry = make_entry()
+    await setup(hass, entry)
+    sel = hass.states.get("select.house_testhold_ground_picture")
+    assert sel.state == GROUND_AUTO
+    assert sel.attributes["options"] == [GROUND_AUTO, "Owl Flight", "Pitchfork"]
+
+    await hass.services.async_call("select", "select_option", {"entity_id": sel.entity_id, "option": "Pitchfork"}, blocking=True)
+    await hass.async_block_till_done()
+    assert entry.options[CONF_GROUND_HOLDING] == "Pitchfork"
+    assert hass.states.get("select.house_testhold_ground_picture").state == "Pitchfork"
+    assert hass.states.get("image.house_testhold_ground").attributes["holding"] == "Pitchfork"
+    assert ground_calls(server)[-1][2]["holding"] == "h-Pitchfork"
+
+    await hass.services.async_call("select", "select_option", {"entity_id": sel.entity_id, "option": GROUND_AUTO}, blocking=True)
+    await hass.async_block_till_done()
+    assert CONF_GROUND_HOLDING not in entry.options
+    assert hass.states.get("image.house_testhold_ground").attributes["holding"] == "Owl Flight"
+
+
+async def test_ground_picture_select_rejects_unknown(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    from homeassistant.exceptions import ServiceValidationError
+
+    server.add(breached_player())
+    entry = make_entry()
+    await setup(hass, entry)
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call("select", "select_option",
+                                       {"entity_id": "select.house_testhold_ground_picture", "option": "Nowhere"}, blocking=True)
+
+
+async def test_ground_picture_select_legacy_unavailable(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(legacy_player())
+    entry = make_entry()
+    await setup(hass, entry)
+    assert hass.states.get("select.house_testhold_ground_picture").state == "unavailable"

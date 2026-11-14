@@ -191,6 +191,14 @@
           }
         }
       }
+    },
+    "select": {
+      "ground_picture": {
+        "name": "Immagine del terreno",
+        "state": {
+          "auto": "Automatico"
+        }
+      }
     }
   },
   "device_automation": {
@@ -207,6 +215,11 @@
     "no_zones": {
       "title": "Gli avvisi di Ashenmarch di {house} non hanno una zona",
       "description": "Nessuna delle zone scelte per gli avvisi di {house} esiste più, quindi ora arrivano da tutti i territori. Apri Ashenmarch → Configura e scegli una zona per limitarli di nuovo."
+    }
+  },
+  "exceptions": {
+    "unknown_holding": {
+      "message": "{holding} non è uno dei tuoi domini con terreno."
     }
   }
 }

@@ -191,6 +191,14 @@
           }
         }
       }
+    },
+    "select": {
+      "ground_picture": {
+        "name": "Ground picture",
+        "state": {
+          "auto": "Automatic"
+        }
+      }
     }
   },
   "device_automation": {
@@ -207,6 +215,11 @@
     "no_zones": {
       "title": "Ashenmarch alerts for {house} have no zone",
       "description": "None of the zones selected for {house}'s alerts exists any more, so alerts now come from all territories. Open Ashenmarch → Configure and pick a zone to limit them again."
+    }
+  },
+  "exceptions": {
+    "unknown_holding": {
+      "message": "{holding} isn't one of your holdings with ground."
     }
   }
 }
