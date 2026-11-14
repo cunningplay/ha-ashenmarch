@@ -79,6 +79,8 @@ One device per player, named after the House ("House Cunningham").
 | `sensor.<house>_last_updated` | When the server computed the summary (diagnostic). |
 | `binary_sensor.<house>_under_siege` | On while **any** holding in the realm is contested. |
 | `binary_sensor.<house>_under_siege_nearby` | On while a siege is open **near one of your alert zones**. Attribute `zones`: which zones (e.g. `["Home"]`), `territories`: which holdings. |
+| `sensor.<house>_gold` | Your coffers: banked gold plus the tribute not yet collected, the figure the app shows. Reading it never collects anything, so the app still shows its "counted in your absence" reveal. |
+| `sensor.<house>_gold_per_hour` | Your House's tribute per hour. |
 | `binary_sensor.<house>_breached` | On while any of your blocks is **breached**. Attributes: `place` (the street to walk), `falls_at` (when it falls unless you walk it), `overdue` (the deadline has passed: it can fall now), `holding`. |
 | `sensor.<house>_breach_falls` | The soonest breach deadline still ahead (timestamp); unknown when nothing is breached. Attribute: `place`. |
 | `sensor.<house>_breached_blocks` | Breached blocks across all your holdings. |
@@ -87,7 +89,7 @@ One device per player, named after the House ("House Cunningham").
 | `select.<house>_ground_picture` | The same choice as **Configure → Ground picture**, as an entity: *Automatic* or one holding. A dashboard can switch the picture to the holding someone taps, then back to *Automatic*. |
 | `image.<house>_coat_of_arms` | Your coat of arms. Downloaded by Home Assistant with your token and served through HA itself; your browser never talks to Ashenmarch. Attributes: `tincture` (the arms' field colour, for theming) and `crest_id`. |
 
-Each holding in `sensor.<house>_holdings` → `list` also carries `ground` (`{fortified, held, worn, breached}`) and `needs_walking`, as above.
+Each holding in `sensor.<house>_holdings` → `list` also carries `ground` (`{fortified, held, worn, breached}`) and `needs_walking`, as above; `gold_per_hour` (your share of its tribute); and `castle`: null without one, `{is_seat: false, stage: ruin}` for a ruin, otherwise `is_seat`, `stage` (sited, palisade, keep, walls, towers), `condition`, `under_siege`, `castle_reserve` / `castle_reserve_max`, `works_built`, `repair_cost`, and the app's two bars `walls_pct` and `reserve_pct`. Never a location.
 
 Home Assistant polls every 5 minutes (it backs off if the server is busy), and only downloads the summary, the crest and the ground picture again when they changed.
 
@@ -300,7 +302,7 @@ El token es **de solo lectura**: lee tu propio reino y nada más. Revócalo en l
 
 Un dispositivo por jugador, con el nombre de su Casa. Dominios (con el área como atributo y el escudo como imagen), dominios bajo asedio, próximo en desvanecerse, posición (con `region` y `title`), distancia esta semana, última actualización; `binary_sensor` *Bajo asedio* (todo el reino) y *Bajo asedio cerca* (con el atributo `zones`); e `image` *Escudo de armas*, descargado por Home Assistant con tu token.
 
-**Terreno (v0.5.0).** `binary_sensor.<casa>_con_brecha` se enciende mientras alguna de tus manzanas tiene brecha (atributos `place`: la calle que hay que marchar, `falls_at`: cuándo cae si no la marchas, `overdue`, `holding`). `sensor.<casa>_caida_de_la_brecha` es el plazo más cercano. `sensor.<casa>_manzanas_con_brecha` y `sensor.<casa>_manzanas_desgastadas` suman todas tus manzanas. `image.<casa>_terreno` es una imagen del terreno de un dominio: **Automático** muestra el que el juego te enseñaría de un vistazo (el que tiene brecha, si no el más desgastado, si no el más grande), o fija uno en **Configurar → Imagen del terreno** o con `select.<casa>_imagen_del_terreno`. Cada dominio de la lista lleva `ground` y `needs_walking`. Los nombres de las entidades siguen el idioma de tu Home Assistant.
+**Terreno (v0.5.0).** `binary_sensor.<casa>_con_brecha` se enciende mientras alguna de tus manzanas tiene brecha (atributos `place`: la calle que hay que marchar, `falls_at`: cuándo cae si no la marchas, `overdue`, `holding`). `sensor.<casa>_caida_de_la_brecha` es el plazo más cercano. `sensor.<casa>_manzanas_con_brecha` y `sensor.<casa>_manzanas_desgastadas` suman todas tus manzanas. `image.<casa>_terreno` es una imagen del terreno de un dominio: **Automático** muestra el que el juego te enseñaría de un vistazo (el que tiene brecha, si no el más desgastado, si no el más grande), o fija uno en **Configurar → Imagen del terreno** o con `select.<casa>_imagen_del_terreno`. Cada dominio de la lista lleva `ground`, `needs_walking`, `gold_per_hour` y `castle` (nulo sin castillo; `stage: ruin` para una ruina; si no, sede, etapa, estado, asedio, reserva, obras, coste de reparación y las barras `walls_pct` y `reserve_pct`). `sensor.<casa>_oro` es tu tesoro (lo guardado más el tributo pendiente, como en la app; leerlo no cobra nada) y `sensor.<casa>_oro_por_hora` tu tributo por hora. Los nombres de las entidades siguen el idioma de tu Home Assistant.
 
 | | Palabra | Significado |
 |---|---|---|

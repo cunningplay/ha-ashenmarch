@@ -534,3 +534,34 @@ async def test_gold_unavailable_without_route(hass: HomeAssistant, server: FakeA
         assert hass.states.get(entity_id).state != "unavailable", entity_id
     assert len(gold_calls(server)) == 1  # tried again hourly, not every poll
     assert integration_logs(caplog) == []
+
+
+
+# ---------------- castle (ASH-4520) ----------------
+
+
+async def test_castle_on_holdings(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = breached_player()
+    p.holdings[0]["castle"] = {"is_seat": True, "stage": "keep", "condition": 0.7, "under_siege": True, "castle_reserve": 120,
+                               "castle_reserve_max": 400, "works_built": ["Barbican"], "repair_cost": 85, "walls_pct": 70,
+                               "reserve_pct": 30, "location": [-104.99, 39.74]}
+    p.holdings[1]["castle"] = {"is_seat": False, "stage": "ruin"}
+    p.holdings.append(holding("Bare Hill", north_of(HOME, 5), None))
+    p.holdings[2]["castle"] = None
+    server.add(p)
+    entry = make_entry()
+    await setup(hass, entry)
+    lst = hass.states.get("sensor.house_testhold_holdings").attributes["list"]
+    assert lst[0]["castle"] == {"is_seat": True, "stage": "keep", "condition": 0.7, "under_siege": True, "castle_reserve": 120,
+                                "castle_reserve_max": 400, "works_built": ["Barbican"], "repair_cost": 85, "walls_pct": 70,
+                                "reserve_pct": 30}
+    assert lst[1]["castle"] == {"is_seat": False, "stage": "ruin"}
+    assert lst[2]["castle"] is None
+    assert "-104.99" not in str(lst) and "location" not in str(lst)
+
+
+async def test_castle_absent_on_older_server(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    server.add(breached_player())
+    entry = make_entry()
+    await setup(hass, entry)
+    assert "castle" not in hass.states.get("sensor.house_testhold_holdings").attributes["list"][0]

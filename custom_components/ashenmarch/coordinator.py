@@ -334,6 +334,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             # The player's share of the holding's tribute per hour (ASH-4517); absent while the economy is off.
             if isinstance(h.get("gold_per_hour"), (int, float)):
                 item["gold_per_hour"] = round(float(h["gold_per_hour"]), 2)
+            # The holding's castle (ASH-4520): null without one; a ruin is {is_seat: false, stage: ruin}. Never a location.
+            if "castle" in h:
+                item["castle"] = _castle(h.get("castle"))
             out.append(item)
             if h.get("name") and h.get("id") and h["name"] not in ids:
                 ids[h["name"]] = str(h["id"])
@@ -732,3 +735,14 @@ def _needs_walking(items: Any) -> list[dict[str, Any]] | None:
         return None
     keep = ("place", "reason", "block_count", "days", "falls_at")
     return [{k: i[k] for k in keep if k in i} for i in items if isinstance(i, dict)]
+
+
+CASTLE_KEYS = ("is_seat", "stage", "condition", "under_siege", "castle_reserve", "castle_reserve_max", "works_built",
+               "repair_cost", "walls_pct", "reserve_pct")
+
+
+def _castle(castle: Any) -> dict[str, Any] | None:
+    """A holding's castle with only the known fields (so a location could never slip into an attribute)."""
+    if not isinstance(castle, dict):
+        return None
+    return {k: castle[k] for k in CASTLE_KEYS if k in castle}
