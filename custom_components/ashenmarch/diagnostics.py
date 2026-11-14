@@ -54,6 +54,7 @@ async def async_get_config_entry_diagnostics(
         "holdings_list_available": coordinator.holdings_available,
         "holdings_with_ground": sum(1 for h in data.holdings if h.get("ground") is not None) if data else 0,
         "ground_picture_available": coordinator.ground_available,
+        "gold_available": coordinator.gold_available,
         "ground_picture_bytes": len(data.ground) if data and data.ground else 0,
         "ground_picture_pinned": entry.options.get(CONF_GROUND_HOLDING) not in (None, GROUND_AUTO),
         "update_interval_s": coordinator.update_interval.total_seconds()

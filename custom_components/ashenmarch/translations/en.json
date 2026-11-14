@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Worn blocks"
+      },
+      "gold": {
+        "name": "Gold"
+      },
+      "gold_per_hour": {
+        "name": "Gold per hour"
       }
     },
     "binary_sensor": {

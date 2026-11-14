@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Îlots usés"
+      },
+      "gold": {
+        "name": "Or"
+      },
+      "gold_per_hour": {
+        "name": "Or par heure"
       }
     },
     "binary_sensor": {

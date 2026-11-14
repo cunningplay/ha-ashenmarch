@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Abgenutzte Blöcke"
+      },
+      "gold": {
+        "name": "Gold"
+      },
+      "gold_per_hour": {
+        "name": "Gold pro Stunde"
       }
     },
     "binary_sensor": {

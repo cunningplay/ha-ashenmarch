@@ -135,6 +135,11 @@ class AshenmarchApi:
         """The player's arms as a square transparent PNG (ASH-3750; the gold seal when there are none); 304 while unchanged."""
         return await self._get("/players/me/coat-of-arms.png", params={"size": 256}, etag=etag, binary=True)
 
+    async def get_coffers(self, etag: str | None = None) -> Fetched:
+        """The House's gold, read without settling (ASH-4517): balance_gold (banked + pending) and gold_per_hour.
+        304 while unchanged; 404 while the economy is off, 403 token_scope on an older server: AshenmarchNotAvailable."""
+        return await self._get("/players/me/coffers", etag=etag)
+
     async def get_ground(self, holding_id: str, size: int, etag: str | None = None) -> Fetched:
         """One holding's ground as a square opaque PNG (ASH-4513); 304 while unchanged. A rival's, unknown or
         legacy holding, or a server without the route, is a 404: AshenmarchNotAvailable."""

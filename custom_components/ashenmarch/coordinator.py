@@ -98,6 +98,7 @@ class AshenmarchData:
     ground: bytes | None = None  # the ground picture of ground_holding (ASH-4514)
     ground_updated: datetime | None = None
     ground_holding: dict[str, Any] | None = None  # the pictured holding, from holdings; None = no picture now
+    gold: dict[str, Any] | None = None  # {balance_gold, gold_per_hour} from /coffers (ASH-4518); None = not available
 
 
 def display_unit(hass: HomeAssistant) -> str:
@@ -154,6 +155,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._ground_retry_at: datetime | None = None  # after a 404: not before this, for the same holding
         self.ground_available = False
         self._pin_lost_logged: str | None = None
+        self._gold: dict[str, Any] | None = None
+        self._gold_etag: str | None = None
+        self.gold_available = False
         self._device_id: str | None = None
 
     # ---- persistence ----
@@ -195,6 +199,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._ground_holdings_etag = stored.get("ground_holdings_etag")
         self._ground_fetched = dt_util.parse_datetime(stored.get("ground_fetched") or "")
         self.ground_available = self._ground is not None
+        self._gold = stored.get("gold")
+        self._gold_etag = stored.get("gold_etag")
+        self.gold_available = self._gold is not None
 
     async def _async_save(self) -> None:
         await self._store.async_save(
@@ -221,6 +228,8 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 "ground_id": self._ground_id,
                 "ground_holdings_etag": self._ground_holdings_etag,
                 "ground_fetched": self._ground_fetched.isoformat() if self._ground_fetched else None,
+                "gold": self._gold,
+                "gold_etag": self._gold_etag,
             }
         )
 
@@ -237,6 +246,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             await self._async_poll_events()
             await self._async_poll_crest()
             await self._async_poll_ground()
+            await self._async_poll_gold()
             await self._async_poll_slow()
         except AshenmarchAuthError as err:
             raise ConfigEntryAuthFailed(f"Ashenmarch refused the token ({err})") from err
@@ -264,6 +274,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             ground=self._ground if self.ground_available else None,
             ground_updated=self._ground_fetched,
             ground_holding=self._pictured() if self.ground_available else None,
+            gold=dict(self._gold) if self.gold_available and self._gold else None,
         )
 
     async def _async_poll_summary(self) -> None:
@@ -320,6 +331,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             # Per-block ground (ASH-4513): null on a legacy holding or an older server; never a coordinate.
             item["ground"] = _ground_counts(h.get("ground"))
             item["needs_walking"] = _needs_walking(h.get("needs_walking"))
+            # The player's share of the holding's tribute per hour (ASH-4517); absent while the economy is off.
+            if isinstance(h.get("gold_per_hour"), (int, float)):
+                item["gold_per_hour"] = round(float(h["gold_per_hour"]), 2)
             out.append(item)
             if h.get("name") and h.get("id") and h["name"] not in ids:
                 ids[h["name"]] = str(h["id"])
@@ -462,6 +476,30 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         elif self._ground_fetched is None or now - self._ground_fetched >= CREST_MAX_AGE:
             self._ground_fetched = now  # a 304 confirms the picture; keep its URL unless it was due anyway
         self.ground_available = self._ground is not None
+
+    async def _async_poll_gold(self) -> None:
+        """The House's gold (ASH-4518), ETag-conditional on every poll. /coffers never settles tribute, so the app's
+        "counted in your absence" reveal is left alone. 404 (economy off) or 403 (an older server) is "not now":
+        unavailable, logged at debug only, tried again hourly."""
+        if not self._optional_due("gold"):
+            return
+        try:
+            fetched = await self.api.get_coffers(self._gold_etag if self._gold else None)
+        except AshenmarchNotAvailable as err:
+            _LOGGER.debug("Ashenmarch gold not available now: %s", err)
+            self.gold_available = False
+            self._optional_retry["gold"] = dt_util.utcnow() + SLOW_INTERVAL
+            return
+        self._optional_on("gold")
+        self._gold_etag = fetched.etag
+        if not fetched.not_modified and isinstance(fetched.data, dict):
+            balance, rate = fetched.data.get("balance_gold"), fetched.data.get("gold_per_hour")
+            if isinstance(balance, (int, float)):
+                self._gold = {
+                    "balance_gold": int(balance),
+                    "gold_per_hour": round(float(rate), 2) if isinstance(rate, (int, float)) else None,
+                }
+        self.gold_available = self._gold is not None
 
     async def _async_poll_slow(self) -> None:
         """Profile and rank progress, at most once an hour: they move slowly. A failure here keeps the old values

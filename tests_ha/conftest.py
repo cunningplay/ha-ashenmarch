@@ -113,6 +113,7 @@ class Player:
     summary: dict[str, Any] = field(default_factory=wrist)
     events: list[dict[str, Any]] = field(default_factory=list)
     status: int = 200  # 401 to revoke the token
+    coffers: dict[str, Any] | None = None  # {balance_gold, gold_per_hour}; None = the route 404s for this player
     holdings: list[dict[str, Any]] = field(default_factory=lambda: [holding("Owl Flight", north_of(HOME, 2), "2026-10-22T08:00:00Z"),
                                                                      holding("Pitchfork", north_of(HOME, -40), "2026-10-30T19:26:50Z")])
 
@@ -129,8 +130,9 @@ class FakeAshenmarch:
         self.holdings_status = 200
         self.ground_status = 200  # 404 = an older server, or a holding not on the block model
         self.ground_version = "g1"  # the picture's ETag; change it to redraw
+        self.coffers_status = 200  # 404 = economy off, 403 = a server before ASH-4517
         self.calls: list[tuple[str, dict[str, str], dict[str, Any]]] = []
-        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank", "/players/me/holdings", "/players/me/ground.png"):
+        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank", "/players/me/holdings", "/players/me/ground.png", "/players/me/coffers"):
             mocker.get(f"{API_BASE}{path}", side_effect=self._handle)
 
     def add(self, player: Player) -> Player:
@@ -190,6 +192,15 @@ class FakeAshenmarch:
             if headers.get("If-None-Match") == etag:
                 return AiohttpClientMockResponse(method, url, status=304, headers={"ETag": etag})
             return AiohttpClientMockResponse(method, url, response=PNG, headers={"ETag": etag, "Content-Type": "image/png"})
+        if path == "/players/me/coffers":
+            if self.coffers_status == 403:
+                return AiohttpClientMockResponse(method, url, status=403, json={"error": "token_scope", "message": "x"})
+            if self.coffers_status != 200 or p.coffers is None:
+                return AiohttpClientMockResponse(method, url, status=404, json={"error": "not_found", "message": "x"})
+            etag = f'W/"{p.coffers["balance_gold"]}-{p.coffers["gold_per_hour"]}"'
+            if headers.get("If-None-Match") == etag:
+                return AiohttpClientMockResponse(method, url, status=304, headers={"ETag": etag})
+            return AiohttpClientMockResponse(method, url, json=p.coffers, headers={"ETag": etag})
         if path == "/players/me/ground.png":
             ids = {h["id"] for h in p.holdings if h.get("ground") is not None}
             if self.ground_status != 200 or params.get("holding") not in ids:

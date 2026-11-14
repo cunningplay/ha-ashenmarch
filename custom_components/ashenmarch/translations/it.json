@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Isolati logorati"
+      },
+      "gold": {
+        "name": "Oro"
+      },
+      "gold_per_hour": {
+        "name": "Oro all'ora"
       }
     },
     "binary_sensor": {

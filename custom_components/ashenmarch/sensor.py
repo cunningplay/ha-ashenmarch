@@ -76,6 +76,26 @@ SENSORS: tuple[AshenmarchSensorDescription, ...] = (
         unrecorded=frozenset({"list"}),
     ),
     AshenmarchSensorDescription(
+        key="gold",
+        icon="mdi:gold",
+        native_unit_of_measurement="gold",
+        state_class=SensorStateClass.MEASUREMENT,
+        source="all",
+        # Banked plus unsettled tribute: the figure the app's Coffers screen shows (ASH-4517/4518).
+        value=lambda d: d.gold["balance_gold"] if d.gold else None,
+        available=lambda d: d.gold is not None,
+    ),
+    AshenmarchSensorDescription(
+        key="gold_per_hour",
+        icon="mdi:cash-clock",
+        native_unit_of_measurement="gold/h",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        source="all",
+        value=lambda d: d.gold["gold_per_hour"] if d.gold else None,
+        available=lambda d: d.gold is not None and d.gold.get("gold_per_hour") is not None,
+    ),
+    AshenmarchSensorDescription(
         key="breach_falls",
         icon="mdi:shield-alert-outline",
         device_class=SensorDeviceClass.TIMESTAMP,

@@ -482,3 +482,55 @@ async def test_ground_picture_select_legacy_unavailable(hass: HomeAssistant, ser
     entry = make_entry()
     await setup(hass, entry)
     assert hass.states.get("select.house_testhold_ground_picture").state == "unavailable"
+
+
+
+# ---------------- gold (ASH-4518) ----------------
+
+
+def gold_calls(server: FakeAshenmarch) -> list:
+    return [c for c in server.calls if c[0] == "/players/me/coffers"]
+
+
+async def test_gold_balance_and_rate(hass: HomeAssistant, server: FakeAshenmarch) -> None:
+    p = breached_player()
+    p.coffers = {"balance_gold": 1534, "gold_per_hour": 12.5}  # banked + pending, as the app shows it
+    p.holdings[0]["gold_per_hour"] = 8.25
+    p.holdings[1]["gold_per_hour"] = 0
+    server.add(p)
+    entry = make_entry()
+    await setup(hass, entry)
+    gold = hass.states.get("sensor.house_testhold_gold")
+    assert gold.state == "1534" and gold.attributes["unit_of_measurement"] == "gold"
+    assert hass.states.get("sensor.house_testhold_gold_per_hour").state == "12.5"
+    lst = hass.states.get("sensor.house_testhold_holdings").attributes["list"]
+    assert [h["gold_per_hour"] for h in lst] == [8.25, 0.0]
+
+    # Unchanged: a conditional request and a 304 keep the value.
+    await poll(hass, entry)
+    assert gold_calls(server)[-1][1].get("If-None-Match") == 'W/"1534-12.5"'
+    assert hass.states.get("sensor.house_testhold_gold").state == "1534"
+
+    p.coffers = {"balance_gold": 1547, "gold_per_hour": 12.5}
+    await poll(hass, entry)
+    assert hass.states.get("sensor.house_testhold_gold").state == "1547"
+
+
+@pytest.mark.parametrize("status", [404, 403])
+async def test_gold_unavailable_without_route(hass: HomeAssistant, server: FakeAshenmarch, caplog, status: int) -> None:
+    """Economy off (404) or a server before ASH-4517 (403 token_scope): gold unavailable, the rest unchanged, quiet."""
+    caplog.set_level(logging.DEBUG)
+    p = breached_player()
+    p.coffers = {"balance_gold": 10, "gold_per_hour": 1}
+    server.add(p)
+    server.coffers_status = status
+    entry = make_entry()
+    await setup(hass, entry)
+    await poll(hass, entry)
+    assert hass.states.get("sensor.house_testhold_gold").state == "unavailable"
+    assert hass.states.get("sensor.house_testhold_gold_per_hour").state == "unavailable"
+    assert "gold_per_hour" not in hass.states.get("sensor.house_testhold_holdings").attributes["list"][0]
+    for entity_id in V04_ENTITIES:
+        assert hass.states.get(entity_id).state != "unavailable", entity_id
+    assert len(gold_calls(server)) == 1  # tried again hourly, not every poll
+    assert integration_logs(caplog) == []

@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Quarteirões desgastados"
+      },
+      "gold": {
+        "name": "Ouro"
+      },
+      "gold_per_hour": {
+        "name": "Ouro por hora"
       }
     },
     "binary_sensor": {

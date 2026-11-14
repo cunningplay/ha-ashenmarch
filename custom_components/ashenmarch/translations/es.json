@@ -129,6 +129,12 @@
       },
       "worn_blocks": {
         "name": "Manzanas desgastadas"
+      },
+      "gold": {
+        "name": "Oro"
+      },
+      "gold_per_hour": {
+        "name": "Oro por hora"
       }
     },
     "binary_sensor": {
