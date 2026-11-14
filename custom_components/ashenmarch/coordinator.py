@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import base64
+import logging
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import device_registry as dr, issue_registry as ir
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.translation import async_get_translations
@@ -32,6 +33,7 @@ from .const import (
     AREA_FILTERED_TYPES,
     AREA_NEAR,
     CONF_ALERT_AREA,
+    CONF_GROUND_HOLDING,
     CONF_RADIUS_KM,
     CONF_TOKEN,
     CONF_ZONES,
@@ -41,20 +43,30 @@ from .const import (
     EVENT_ASHENMARCH,
     EVENTS_MAX_PAGES,
     EVENTS_PAGE_LIMIT,
+    GROUND_AUTO,
+    GROUND_SIZE,
     HOLDING_LOST,
     ISSUE_NO_ZONES,
     MAX_BACKOFF,
     NEAREST_ZONE_MAX_KM,
+    RECENT_CAP,
     SCAN_INTERVAL,
     SEEN_IDS_CAP,
     SIEGE_ENDED,
     SIEGE_STARTED,
-    RECENT_CAP,
     SKIPPED_CAP,
     SLOW_INTERVAL,
     STORAGE_VERSION,
 )
-from .geo import Zone, ZoneMatch, default_radius, format_distance, from_km, to_km, zone_distances
+from .geo import (
+    Zone,
+    ZoneMatch,
+    default_radius,
+    format_distance,
+    from_km,
+    to_km,
+    zone_distances,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,6 +95,9 @@ class AshenmarchData:
     profile: dict[str, Any] = field(default_factory=dict)  # total_area_claimed_m2, first_claim_at (hourly)
     recent: list[dict[str, Any]] = field(default_factory=list)  # the last events, newest first
     holdings: list[dict[str, Any]] = field(default_factory=list)  # soonest decay first, no coordinates
+    ground: bytes | None = None  # the ground picture of ground_holding (ASH-4514)
+    ground_updated: datetime | None = None
+    ground_holding: dict[str, Any] | None = None  # the pictured holding, from holdings; None = no picture now
 
 
 def display_unit(hass: HomeAssistant) -> str:
@@ -130,6 +145,15 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._optional_retry: dict[str, datetime] = {}  # feature -> when to try a route that wasn't there again
         self.events_available = True
         self.crest_available = True
+        self._holding_ids: dict[str, str] = {}  # holding name -> id, for ground.png (never shown)
+        self._ground: bytes | None = None
+        self._ground_etag: str | None = None
+        self._ground_id: str | None = None  # the holding the stored picture shows
+        self._ground_holdings_etag: str | None = None  # the holdings ETag when it was downloaded
+        self._ground_fetched: datetime | None = None
+        self._ground_retry_at: datetime | None = None  # after a 404: not before this, for the same holding
+        self.ground_available = False
+        self._pin_lost_logged: str | None = None
         self._device_id: str | None = None
 
     # ---- persistence ----
@@ -157,6 +181,17 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._slow_at = dt_util.parse_datetime(stored.get("slow_at") or "")
         self._holdings = stored.get("holdings") or []
         self._holdings_etag = stored.get("holdings_etag")
+        self._holding_ids = stored.get("holding_ids") or {}
+        if ground := stored.get("ground"):
+            try:
+                self._ground = base64.b64decode(ground)
+            except ValueError:
+                self._ground = None
+        self._ground_etag = stored.get("ground_etag")
+        self._ground_id = stored.get("ground_id")
+        self._ground_holdings_etag = stored.get("ground_holdings_etag")
+        self._ground_fetched = dt_util.parse_datetime(stored.get("ground_fetched") or "")
+        self.ground_available = self._ground is not None
 
     async def _async_save(self) -> None:
         await self._store.async_save(
@@ -177,6 +212,12 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 "slow_at": self._slow_at.isoformat() if self._slow_at else None,
                 "holdings": self._holdings,
                 "holdings_etag": self._holdings_etag,
+                "holding_ids": self._holding_ids,
+                "ground": base64.b64encode(self._ground).decode() if self._ground else None,
+                "ground_etag": self._ground_etag,
+                "ground_id": self._ground_id,
+                "ground_holdings_etag": self._ground_holdings_etag,
+                "ground_fetched": self._ground_fetched.isoformat() if self._ground_fetched else None,
             }
         )
 
@@ -192,6 +233,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             await self._async_poll_holdings()
             await self._async_poll_events()
             await self._async_poll_crest()
+            await self._async_poll_ground()
             await self._async_poll_slow()
         except AshenmarchAuthError as err:
             raise ConfigEntryAuthFailed(f"Ashenmarch refused the token ({err})") from err
@@ -216,6 +258,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             profile=dict(self._profile),
             recent=list(self._recent),
             holdings=list(self._holdings),
+            ground=self._ground if self.ground_available else None,
+            ground_updated=self._ground_fetched,
+            ground_holding=self._pictured() if self.ground_available else None,
         )
 
     async def _async_poll_summary(self) -> None:
@@ -258,6 +303,7 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             return
         zones = self.alert_area().zones
         out = []
+        ids: dict[str, str] = {}
         for h in fetched.data.get("holdings") or []:
             if not isinstance(h, dict):
                 continue
@@ -268,8 +314,14 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
                 "distance_km": round(nearest[0].distance_km, 1) if nearest else None,
             }
             item |= _tier_progress(h.get("tier_progress"))
+            # Per-block ground (ASH-4513): null on a legacy holding or an older server; never a coordinate.
+            item["ground"] = _ground_counts(h.get("ground"))
+            item["needs_walking"] = _needs_walking(h.get("needs_walking"))
             out.append(item)
+            if h.get("name") and h.get("id") and h["name"] not in ids:
+                ids[h["name"]] = str(h["id"])
         self._holdings = out
+        self._holding_ids = ids
 
     async def _async_poll_events(self) -> None:
         if not self._optional_due("events"):
@@ -336,6 +388,77 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._crest_fetched = now
         if not fetched.not_modified and fetched.data:
             self._crest = bytes(fetched.data)
+
+    # ---- the ground picture (ASH-4514) ----
+
+    def ground_choice(self) -> str | None:
+        """The holding the picture shows: the pinned one while it's still held, else the wrist summary's
+        ground_holding (Automatic). None when nothing has ground (legacy player, older server)."""
+        pinned = self.config_entry.options.get(CONF_GROUND_HOLDING)
+        if pinned and pinned != GROUND_AUTO:
+            if self._has_ground(pinned):
+                self._pin_lost_logged = None
+                return pinned
+            if self.holdings_available and self._holdings and self._pin_lost_logged != pinned:
+                _LOGGER.info(
+                    "Ashenmarch: the holding pinned for %s's ground picture isn't held any more; showing Automatic",
+                    self.config_entry.title,
+                )
+                self._pin_lost_logged = pinned
+        auto = self._summary.get("ground_holding")
+        return auto if isinstance(auto, str) and self._has_ground(auto) else None
+
+    def _has_ground(self, name: str) -> bool:
+        return name in self._holding_ids and any(
+            h.get("name") == name and h.get("ground") is not None for h in self._holdings
+        )
+
+    def _pictured(self) -> dict[str, Any] | None:
+        return next((h for h in self._holdings if self._ground_id and self._holding_ids.get(h.get("name")) == self._ground_id), None)
+
+    async def _async_poll_ground(self) -> None:
+        """Download the picture only when the holdings ETag or the chosen holding changed, or it is a day old.
+        A 304 keeps it; a 404 (not on the block model, or an older server) is "not now", logged at debug only."""
+        name = self.ground_choice()
+        holding_id = self._holding_ids.get(name) if name else None
+        if holding_id is None:
+            self.ground_available = False
+            return
+        now = dt_util.utcnow()
+        same = holding_id == self._ground_id
+        if same and self._ground_retry_at is not None and now < self._ground_retry_at and self._ground is None:
+            return
+        fresh = (
+            same
+            and self._ground is not None
+            and self._ground_holdings_etag == self._holdings_etag
+            and self._ground_fetched is not None
+            and now - self._ground_fetched < CREST_MAX_AGE
+        )
+        if fresh:
+            self.ground_available = True
+            return
+        etag = self._ground_etag if same and self._ground is not None else None
+        try:
+            fetched = await self.api.get_ground(holding_id, GROUND_SIZE, etag)
+        except AshenmarchNotAvailable as err:
+            _LOGGER.debug("Ashenmarch ground picture not available now: %s", err)
+            self.ground_available = False
+            self._ground = None
+            self._ground_etag = None
+            self._ground_id = holding_id
+            self._ground_retry_at = now + SLOW_INTERVAL
+            return
+        self._ground_retry_at = None
+        self._ground_id = holding_id
+        self._ground_etag = fetched.etag
+        self._ground_holdings_etag = self._holdings_etag
+        if not fetched.not_modified and fetched.data:
+            self._ground = bytes(fetched.data)
+            self._ground_fetched = now
+        elif self._ground_fetched is None or now - self._ground_fetched >= CREST_MAX_AGE:
+            self._ground_fetched = now  # a 304 confirms the picture; keep its URL unless it was due anyway
+        self.ground_available = self._ground is not None
 
     async def _async_poll_slow(self) -> None:
         """Profile and rank progress, at most once an hour: they move slowly. A failure here keeps the old values
@@ -482,6 +605,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
             "config_entry_id": self.config_entry.entry_id,
             "zones_matched": [self._zone_dict(m, area.unit) for m in within],
         }
+        # siege_started on the block model (ASH-4513): the breached street, its blocks and its deadline.
+        data = event.get("data") or {}
+        payload |= {k: data[k] for k in ("place", "blocks_breached", "falls_at") if k in data}
         if nearest is not None:
             distance = round(from_km(nearest.distance_km, area.unit), 1)
             payload |= {
@@ -527,7 +653,11 @@ def _recent_entry(event: dict[str, Any]) -> dict[str, Any]:
         "at": event.get("at"),
         "message": event.get("message"),
         "territory": (event.get("territory") or {}).get("name"),
-        **{k: data[k] for k in ("outcome", "distance_m", "new_holding", "area_new_m2") if k in data},
+        **{
+            k: data[k]
+            for k in ("outcome", "distance_m", "new_holding", "area_new_m2", "place", "blocks_breached", "falls_at")
+            if k in data
+        },
     }
 
 
@@ -543,3 +673,21 @@ def _tier_progress(tp: Any) -> dict[str, Any]:
         "next_tier_name": None if top else tp.get("next_tier_name"),
         "max": top,
     }
+
+
+GROUND_WORDS = ("fortified", "held", "worn", "breached")
+
+
+def _ground_counts(ground: Any) -> dict[str, int] | None:
+    """A holding's blocks per word; None on a legacy holding or an older server."""
+    if not isinstance(ground, dict):
+        return None
+    return {w: int(ground.get(w) or 0) for w in GROUND_WORDS}
+
+
+def _needs_walking(items: Any) -> list[dict[str, Any]] | None:
+    """The stretches to walk next, without their centre: attributes never hold a coordinate."""
+    if not isinstance(items, list):
+        return None
+    keep = ("place", "reason", "block_count", "days", "falls_at")
+    return [{k: i[k] for k in keep if k in i} for i in items if isinstance(i, dict)]

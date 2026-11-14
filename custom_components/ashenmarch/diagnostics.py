@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_PLAYER_ID, CONF_TOKEN
+from .const import CONF_GROUND_HOLDING, CONF_PLAYER_ID, CONF_TOKEN, GROUND_AUTO
 from .coordinator import AshenmarchConfigEntry
 
 # Users attach this file to public issues: drop the token, the account id and every house
@@ -19,6 +19,9 @@ TO_REDACT = {
     "house",
     "message",
     "message_with_zone",
+    # Street names (ASH-4514): the breached stretch and the stretches to walk.
+    "place",
+    "siege_place",
 }
 
 
@@ -31,7 +34,7 @@ async def async_get_config_entry_diagnostics(
     data = coordinator.data
     return {
         "entry": async_redact_data(dict(entry.data), TO_REDACT),
-        "options": dict(entry.options),
+        "options": async_redact_data(dict(entry.options), {CONF_GROUND_HOLDING}),
         "alert_area": {
             "mode": area.mode,
             "zones": [z.entity_id for z in area.zones],
@@ -49,6 +52,10 @@ async def async_get_config_entry_diagnostics(
         "recent_events": len(data.recent) if data else 0,
         "holdings_listed": len(data.holdings) if data else 0,
         "holdings_list_available": coordinator.holdings_available,
+        "holdings_with_ground": sum(1 for h in data.holdings if h.get("ground") is not None) if data else 0,
+        "ground_picture_available": coordinator.ground_available,
+        "ground_picture_bytes": len(data.ground) if data and data.ground else 0,
+        "ground_picture_pinned": entry.options.get(CONF_GROUND_HOLDING) not in (None, GROUND_AUTO),
         "update_interval_s": coordinator.update_interval.total_seconds()
         if coordinator.update_interval
         else None,

@@ -37,15 +37,17 @@
     "step": {
       "init": {
         "title": "Alertas",
-        "description": "Las alertas (asedios, dominios perdidos o ganados, a punto de desvanecerse) solo llegan para territorios dentro del radio de las zonas elegidas. Tus propias marchas siempre llegan. Radio por defecto: {one_zone} {unit} con una zona, {many_zones} {unit} con dos o más, hasta que escribas el tuyo (por defecto para {zone_count} zona(s): {default} {unit}).",
+        "description": "Las alertas (asedios, dominios perdidos o ganados, a punto de desvanecerse) solo llegan para territorios dentro del radio de las zonas elegidas. Tus propias marchas siempre llegan. Radio por defecto: {one_zone} {unit} con una zona, {many_zones} {unit} con dos o más, hasta que escribas el tuyo (por defecto para {zone_count} zona(s): {default} {unit}). La imagen del terreno muestra las manzanas de un dominio: Automático, o fija uno.",
         "data": {
           "alert_area": "Área de alertas",
           "zones": "Zonas",
-          "radius": "Radio"
+          "radius": "Radio",
+          "ground_holding": "Imagen del terreno"
         },
         "data_description": {
           "zones": "Una alerta llega cuando su territorio está dentro del radio de cualquiera de estas zonas.",
-          "radius": "Borra el campo para volver al valor por defecto."
+          "radius": "Borra el campo para volver al valor por defecto.",
+          "ground_holding": "Qué dominio muestra la imagen del terreno. Automático sigue el vistazo del juego: el dominio con brecha, si no el más desgastado, si no el más grande."
         }
       }
     },
@@ -58,6 +60,11 @@
       "options": {
         "near": "Cerca de mis zonas",
         "all": "Todos los territorios"
+      }
+    },
+    "ground_holding": {
+      "options": {
+        "auto": "Automático"
       }
     }
   },
@@ -108,6 +115,20 @@
       },
       "last_updated": {
         "name": "Última actualización"
+      },
+      "breach_falls": {
+        "name": "Caída de la brecha",
+        "state_attributes": {
+          "place": {
+            "name": "Calle"
+          }
+        }
+      },
+      "breached_blocks": {
+        "name": "Manzanas con brecha"
+      },
+      "worn_blocks": {
+        "name": "Manzanas desgastadas"
       }
     },
     "binary_sensor": {
@@ -124,11 +145,51 @@
             "name": "Territorios"
           }
         }
+      },
+      "breached": {
+        "name": "Con brecha",
+        "state_attributes": {
+          "place": {
+            "name": "Calle"
+          },
+          "falls_at": {
+            "name": "Cae el"
+          },
+          "overdue": {
+            "name": "Vencida"
+          },
+          "holding": {
+            "name": "Dominio"
+          }
+        }
       }
     },
     "image": {
       "coat_of_arms": {
         "name": "Escudo de armas"
+      },
+      "ground": {
+        "name": "Terreno",
+        "state_attributes": {
+          "holding": {
+            "name": "Dominio"
+          },
+          "fortified": {
+            "name": "Fortificadas"
+          },
+          "held": {
+            "name": "Sostenidas"
+          },
+          "worn": {
+            "name": "Desgastadas"
+          },
+          "breached": {
+            "name": "Con brecha"
+          },
+          "needs_walking": {
+            "name": "Falta marchar"
+          }
+        }
       }
     }
   },

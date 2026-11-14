@@ -37,15 +37,17 @@
     "step": {
       "init": {
         "title": "Alerts",
-        "description": "Alerts (sieges, holdings lost or won, fading soon) fire only for territory within the radius of the selected zones. Your own marches always fire. Default radius: {one_zone} {unit} for one zone, {many_zones} {unit} for two or more, until you type your own (default for {zone_count} zone(s): {default} {unit}).",
+        "description": "Alerts (sieges, holdings lost or won, fading soon) fire only for territory within the radius of the selected zones. Your own marches always fire. Default radius: {one_zone} {unit} for one zone, {many_zones} {unit} for two or more, until you type your own (default for {zone_count} zone(s): {default} {unit}). The ground picture shows one holding's blocks: Automatic, or pin one.",
         "data": {
           "alert_area": "Alert area",
           "zones": "Zones",
-          "radius": "Radius"
+          "radius": "Radius",
+          "ground_holding": "Ground picture"
         },
         "data_description": {
           "zones": "An alert fires when its territory is within the radius of any of these zones.",
-          "radius": "Clear the field to go back to the default."
+          "radius": "Clear the field to go back to the default.",
+          "ground_holding": "Which holding the ground picture shows. Automatic follows the game's glance: the breached holding, else the most worn, else the largest."
         }
       }
     },
@@ -58,6 +60,11 @@
       "options": {
         "near": "Near my zones",
         "all": "All territories"
+      }
+    },
+    "ground_holding": {
+      "options": {
+        "auto": "Automatic"
       }
     }
   },
@@ -108,6 +115,20 @@
       },
       "last_updated": {
         "name": "Last updated"
+      },
+      "breach_falls": {
+        "name": "Breach falls",
+        "state_attributes": {
+          "place": {
+            "name": "Street"
+          }
+        }
+      },
+      "breached_blocks": {
+        "name": "Breached blocks"
+      },
+      "worn_blocks": {
+        "name": "Worn blocks"
       }
     },
     "binary_sensor": {
@@ -124,11 +145,51 @@
             "name": "Territories"
           }
         }
+      },
+      "breached": {
+        "name": "Breached",
+        "state_attributes": {
+          "place": {
+            "name": "Street"
+          },
+          "falls_at": {
+            "name": "Falls at"
+          },
+          "overdue": {
+            "name": "Overdue"
+          },
+          "holding": {
+            "name": "Holding"
+          }
+        }
       }
     },
     "image": {
       "coat_of_arms": {
         "name": "Coat of arms"
+      },
+      "ground": {
+        "name": "Ground",
+        "state_attributes": {
+          "holding": {
+            "name": "Holding"
+          },
+          "fortified": {
+            "name": "Fortified"
+          },
+          "held": {
+            "name": "Held"
+          },
+          "worn": {
+            "name": "Worn"
+          },
+          "breached": {
+            "name": "Breached"
+          },
+          "needs_walking": {
+            "name": "Needs walking"
+          }
+        }
       }
     }
   },

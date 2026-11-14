@@ -37,15 +37,17 @@
     "step": {
       "init": {
         "title": "Alertes",
-        "description": "Les alertes (sièges, fiefs perdus ou gagnés, bientôt effacés) ne concernent que les territoires dans le rayon des zones choisies. Vos propres marches sont toujours signalées. Rayon par défaut : {one_zone} {unit} pour une zone, {many_zones} {unit} pour deux ou plus, jusqu'à ce que vous saisissiez le vôtre (par défaut pour {zone_count} zone(s) : {default} {unit}).",
+        "description": "Les alertes (sièges, fiefs perdus ou gagnés, bientôt effacés) ne concernent que les territoires dans le rayon des zones choisies. Vos propres marches sont toujours signalées. Rayon par défaut : {one_zone} {unit} pour une zone, {many_zones} {unit} pour deux ou plus, jusqu'à ce que vous saisissiez le vôtre (par défaut pour {zone_count} zone(s) : {default} {unit}). L'image du terrain montre les îlots d'un domaine : Automatique, ou épinglez-en un.",
         "data": {
           "alert_area": "Zone d'alerte",
           "zones": "Zones",
-          "radius": "Rayon"
+          "radius": "Rayon",
+          "ground_holding": "Image du terrain"
         },
         "data_description": {
           "zones": "Une alerte se déclenche quand son territoire est dans le rayon de l'une de ces zones.",
-          "radius": "Videz le champ pour revenir à la valeur par défaut."
+          "radius": "Videz le champ pour revenir à la valeur par défaut.",
+          "ground_holding": "Le domaine affiché par l'image du terrain. Automatique suit l'aperçu du jeu : le domaine percé, sinon le plus usé, sinon le plus grand."
         }
       }
     },
@@ -58,6 +60,11 @@
       "options": {
         "near": "Près de mes zones",
         "all": "Tous les territoires"
+      }
+    },
+    "ground_holding": {
+      "options": {
+        "auto": "Automatique"
       }
     }
   },
@@ -108,6 +115,20 @@
       },
       "last_updated": {
         "name": "Dernière mise à jour"
+      },
+      "breach_falls": {
+        "name": "Chute de la brèche",
+        "state_attributes": {
+          "place": {
+            "name": "Rue"
+          }
+        }
+      },
+      "breached_blocks": {
+        "name": "Îlots percés"
+      },
+      "worn_blocks": {
+        "name": "Îlots usés"
       }
     },
     "binary_sensor": {
@@ -124,11 +145,51 @@
             "name": "Territoires"
           }
         }
+      },
+      "breached": {
+        "name": "Percé",
+        "state_attributes": {
+          "place": {
+            "name": "Rue"
+          },
+          "falls_at": {
+            "name": "Tombe le"
+          },
+          "overdue": {
+            "name": "Échue"
+          },
+          "holding": {
+            "name": "Domaine"
+          }
+        }
       }
     },
     "image": {
       "coat_of_arms": {
         "name": "Armoiries"
+      },
+      "ground": {
+        "name": "Terrain",
+        "state_attributes": {
+          "holding": {
+            "name": "Domaine"
+          },
+          "fortified": {
+            "name": "Fortifiés"
+          },
+          "held": {
+            "name": "Tenus"
+          },
+          "worn": {
+            "name": "Usés"
+          },
+          "breached": {
+            "name": "Percés"
+          },
+          "needs_walking": {
+            "name": "Marche nécessaire"
+          }
+        }
       }
     }
   },

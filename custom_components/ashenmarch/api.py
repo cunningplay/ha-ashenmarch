@@ -7,8 +7,8 @@ status of a request are.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import aiohttp
@@ -51,7 +51,7 @@ class Fetched:
 
 
 class AshenmarchApi:
-    """A thin client for the five routes a personal access token may read."""
+    """A thin client for the routes a personal access token may read."""
 
     def __init__(
         self, session: aiohttp.ClientSession, token: str, base_url: str = API_BASE
@@ -134,6 +134,13 @@ class AshenmarchApi:
     async def get_coat_of_arms(self, etag: str | None = None) -> Fetched:
         """The player's arms as a square transparent PNG (ASH-3750; the gold seal when there are none); 304 while unchanged."""
         return await self._get("/players/me/coat-of-arms.png", params={"size": 256}, etag=etag, binary=True)
+
+    async def get_ground(self, holding_id: str, size: int, etag: str | None = None) -> Fetched:
+        """One holding's ground as a square opaque PNG (ASH-4513); 304 while unchanged. A rival's, unknown or
+        legacy holding, or a server without the route, is a 404: AshenmarchNotAvailable."""
+        return await self._get(
+            "/players/me/ground.png", params={"holding": holding_id, "size": size}, etag=etag, binary=True
+        )
 
 
 async def _error_code(resp: aiohttp.ClientResponse) -> str:

@@ -7,9 +7,9 @@ territory's bounding box, so a large territory that reaches into the area counts
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-import math
 from typing import Any
 
 EARTH_RADIUS_KM = 6371.0088

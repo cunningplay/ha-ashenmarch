@@ -6,7 +6,7 @@ from datetime import timedelta
 
 DOMAIN = "ashenmarch"
 MANUFACTURER = "Ashenmarch"
-VERSION = "0.4.2"
+VERSION = "0.5.0"
 
 API_BASE = "https://api.ashenmarch.com/v1"
 PORTAL_TOKENS_URL = "https://ashenmarch.com/portal/profile"
@@ -29,6 +29,12 @@ DEFAULT_ZONE = "zone.home"
 # hasn't set one: 25 mi / 40 km for one zone, 5 mi / 8 km for several (D-365).
 RADIUS_MIN = 0.5
 RADIUS_MAX = 100.0
+
+# The ground picture (ASH-4514): Automatic follows the wrist summary's ground_holding (D-406),
+# or the player pins one holding by name. Absent from the options = Automatic.
+CONF_GROUND_HOLDING = "ground_holding"
+GROUND_AUTO = "auto"
+GROUND_SIZE = 512
 # In "all territories" mode an event still names the nearest selected zone within this distance.
 NEAREST_ZONE_MAX_KM = 160.934  # 100 mi
 

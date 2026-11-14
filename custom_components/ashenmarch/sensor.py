@@ -13,7 +13,13 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, EntityCategory, Platform, UnitOfArea, UnitOfLength
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    Platform,
+    UnitOfArea,
+    UnitOfLength,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -39,6 +45,12 @@ def _holdings_attrs(d: Any) -> dict[str, Any]:
     return out
 
 
+def _ground_sum(d: Any, word: str) -> int | None:
+    """Blocks reading one word across every holding on the block model; None when none is (legacy, older server)."""
+    counts = [h["ground"] for h in d.holdings if isinstance(h.get("ground"), dict)]
+    return sum(c.get(word, 0) for c in counts) if counts else None
+
+
 @dataclass(frozen=True, kw_only=True)
 class AshenmarchSensorDescription(SensorEntityDescription):
     """How one sensor reads the summary."""
@@ -48,6 +60,8 @@ class AshenmarchSensorDescription(SensorEntityDescription):
     crest_picture: bool = False
     source: str = "summary"  # which part of the data the value reads: summary, rank, profile, recent (a list) or all
     unrecorded: frozenset[str] = frozenset()
+    # Extra availability on top of "a summary has been read": None = always.
+    available: Callable[[Any], bool] | None = None
 
 
 SENSORS: tuple[AshenmarchSensorDescription, ...] = (
@@ -60,6 +74,31 @@ SENSORS: tuple[AshenmarchSensorDescription, ...] = (
         attrs=_holdings_attrs,
         crest_picture=True,
         unrecorded=frozenset({"list"}),
+    ),
+    AshenmarchSensorDescription(
+        key="breach_falls",
+        icon="mdi:shield-alert-outline",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        # The soonest breach deadline still ahead (ASH-4072/4247); unknown when nothing is breached.
+        value=lambda s: _dt(s.get("siege_falls_at")),
+        attrs=lambda s: {"place": s.get("siege_place")},
+        available=lambda d: "siege_place" in d.summary,
+    ),
+    AshenmarchSensorDescription(
+        key="breached_blocks",
+        icon="mdi:wall-fire",
+        state_class=SensorStateClass.MEASUREMENT,
+        source="all",
+        value=lambda d: _ground_sum(d, "breached"),
+        available=lambda d: _ground_sum(d, "breached") is not None,
+    ),
+    AshenmarchSensorDescription(
+        key="worn_blocks",
+        icon="mdi:wall",
+        state_class=SensorStateClass.MEASUREMENT,
+        source="all",
+        value=lambda d: _ground_sum(d, "worn"),
+        available=lambda d: _ground_sum(d, "worn") is not None,
     ),
     AshenmarchSensorDescription(
         key="under_siege_count",
@@ -151,6 +190,14 @@ class AshenmarchSensor(AshenmarchEntity, SensorEntity):
         super().__init__(coordinator, description.key)
         self.entity_description = description
         self._unrecorded_attributes = description.unrecorded
+
+    @property
+    def available(self) -> bool:
+        """The ground counts are unavailable while no holding has ground (legacy player, older server)."""
+        if not super().available:
+            return False
+        check = self.entity_description.available
+        return check is None or check(self.coordinator.data)
 
     def _source(self) -> Any:
         if self.entity_description.source == "all":

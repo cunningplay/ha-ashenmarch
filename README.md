@@ -36,6 +36,10 @@ Real captures from a household Home Assistant with two players.
 
 <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/holdings-tier-progress.png" alt="Holdings with their tier and % to the next tier: Keep 70% to Stronghold" width="640">
 
+**A holding's ground** (v0.5.0): the picture pinned to the Pitchfork citadel, fortified in the middle and held around it, with the breach and block counts under it.
+
+<img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-dashboard.png" alt="Dashboard: the ground picture of a holding, fortified and held blocks on the parchment map, then Breached, Breach falls, Breached blocks and Worn blocks" width="420">
+
 A phone notification from the example automation will be added after the next real siege.
 
 ## Install (HACS)
@@ -75,9 +79,29 @@ One device per player, named after the House ("House Cunningham").
 | `sensor.<house>_last_updated` | When the server computed the summary (diagnostic). |
 | `binary_sensor.<house>_under_siege` | On while **any** holding in the realm is contested. |
 | `binary_sensor.<house>_under_siege_nearby` | On while a siege is open **near one of your alert zones**. Attribute `zones`: which zones (e.g. `["Home"]`), `territories`: which holdings. |
+| `binary_sensor.<house>_breached` | On while any of your blocks is **breached**. Attributes: `place` (the street to walk), `falls_at` (when it falls unless you walk it), `overdue` (the deadline has passed: it can fall now), `holding`. |
+| `sensor.<house>_breach_falls` | The soonest breach deadline still ahead (timestamp); unknown when nothing is breached. Attribute: `place`. |
+| `sensor.<house>_breached_blocks` | Breached blocks across all your holdings. |
+| `sensor.<house>_worn_blocks` | Worn blocks across all your holdings. |
+| `image.<house>_ground` | A picture of one holding's ground: the parchment map with each block in its colour (legend below) and the holding's outline. **Automatic** shows the holding the game would show you at a glance: the breached one, else the most worn, else the largest. **Configure → Ground picture** pins one holding by name; if you lose it, the picture goes back to Automatic. Attributes: `holding`, `fortified`, `held`, `worn`, `breached`, and `needs_walking`: up to 3 stretches to walk next (`place`, `reason`, `block_count`, `days`, `falls_at`). |
 | `image.<house>_coat_of_arms` | Your coat of arms. Downloaded by Home Assistant with your token and served through HA itself; your browser never talks to Ashenmarch. Attributes: `tincture` (the arms' field colour, for theming) and `crest_id`. |
 
-Home Assistant polls every 5 minutes (it backs off if the server is busy), and only downloads the summary and the crest again when they changed.
+Each holding in `sensor.<house>_holdings` → `list` also carries `ground` (`{fortified, held, worn, breached}`) and `needs_walking`, as above.
+
+Home Assistant polls every 5 minutes (it backs off if the server is busy), and only downloads the summary, the crest and the ground picture again when they changed.
+
+### Ground: the four words
+
+Since Ashenmarch 1.1.0 a holding's ground reads block by block:
+
+| | Word | Meaning |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-fortified.png" alt="" width="16"> | **Fortified** | Walked often; the strongest. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-held.png" alt="" width="16"> | **Held** | The baseline. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-worn.png" alt="" width="16"> | **Worn** | Weakened by a raider or by time. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-breached.png" alt="" width="16"> | **Breached** | Down to nothing (hatched). It falls at its deadline unless you walk it. |
+
+A player still on the holding-wide model (or a server older than this release) has no ground: `image.<house>_ground`, `sensor.<house>_breached_blocks` and `sensor.<house>_worn_blocks` are unavailable, and everything else works as before.
 
 ## Alerts near your zones
 
@@ -104,6 +128,7 @@ Fired once per server event, in order, never twice (the feed cursor survives res
 | `zone`, `zone_name`, `distance`, `distance_unit`, `distance_km` | The nearest matching zone. In *All territories* mode: the nearest selected zone within 100 mi, or absent. |
 | `zones_matched` | Every zone within the radius, with its distance. |
 | `territory` | `{id, name, center, bbox}`. |
+| `place`, `blocks_breached`, `falls_at` | `siege_started` on the block model only: the breached street, how many blocks the raid breached, and when they fall unless you walk them. Absent otherwise. |
 | `data`, `at`, `event_id` | The server's details. |
 
 The House devices also offer **device triggers** (*Siege started*, *Holding lost*, *Fading soon*, *March filed*, …) for building automations without YAML.
@@ -126,6 +151,30 @@ automation:
         data:
           title: "⚔️ Siege"
           message: "{{ trigger.event.data.message_with_zone }}"
+```
+
+**A street breached near Home**, with the street and the hours left:
+
+```yaml
+automation:
+  - alias: Ashenmarch — breach near Home
+    triggers:
+      - trigger: event
+        event_type: ashenmarch_event
+        event_data:
+          type: siege_started
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.event.data.place is defined
+             and trigger.event.data.zones_matched | selectattr('zone', 'eq', 'zone.home') | list | count > 0 }}
+    actions:
+      - action: notify.mobile_app_my_phone
+        data:
+          title: "🧱 {{ trigger.event.data.place }} is breached"
+          message: >-
+            {% set hours = ((as_datetime(trigger.event.data.falls_at) - now()).total_seconds() / 3600) | round(0) | int %}
+            House {{ trigger.event.data.house }}: walk it within {{ hours }} h or it falls.
 ```
 
 **Household:** any House under siege near a zone, flash the hall light:
@@ -203,6 +252,7 @@ cards:
 - The token is stored only in Home Assistant's config entry, never logged, and redacted in diagnostics.
 - Home Assistant talks only to `api.ashenmarch.com`, and only to read the player's own realm.
 - Distances to your zones are computed locally; your zones' coordinates never leave Home Assistant.
+- The ground picture shows your holding's streets. Home Assistant downloads it with your token and serves it itself; your browser never talks to Ashenmarch. No attribute holds a coordinate, and diagnostics redact street names.
 
 ## Development
 
@@ -249,17 +299,30 @@ El token es **de solo lectura**: lee tu propio reino y nada más. Revócalo en l
 
 Un dispositivo por jugador, con el nombre de su Casa. Dominios (con el área como atributo y el escudo como imagen), dominios bajo asedio, próximo en desvanecerse, posición (con `region` y `title`), distancia esta semana, última actualización; `binary_sensor` *Bajo asedio* (todo el reino) y *Bajo asedio cerca* (con el atributo `zones`); e `image` *Escudo de armas*, descargado por Home Assistant con tu token.
 
+**Terreno (v0.5.0).** `binary_sensor.<casa>_con_brecha` se enciende mientras alguna de tus manzanas tiene brecha (atributos `place`: la calle que hay que marchar, `falls_at`: cuándo cae si no la marchas, `overdue`, `holding`). `sensor.<casa>_caida_de_la_brecha` es el plazo más cercano. `sensor.<casa>_manzanas_con_brecha` y `sensor.<casa>_manzanas_desgastadas` suman todas tus manzanas. `image.<casa>_terreno` es una imagen del terreno de un dominio: **Automático** muestra el que el juego te enseñaría de un vistazo (el que tiene brecha, si no el más desgastado, si no el más grande), o fija uno en **Configurar → Imagen del terreno**. Cada dominio de la lista lleva `ground` y `needs_walking`. Los nombres de las entidades siguen el idioma de tu Home Assistant.
+
+| | Palabra | Significado |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-fortified.png" alt="" width="16"> | **Fortificada** | La marchas a menudo; la más fuerte. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-held.png" alt="" width="16"> | **Sostenida** | Lo normal. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-worn.png" alt="" width="16"> | **Desgastada** | Debilitada por un asaltante o por el tiempo. |
+| <img src="https://raw.githubusercontent.com/cunningplay/ha-ashenmarch/main/docs/images/ground-breached.png" alt="" width="16"> | **Con brecha** | Sin defensa (rayada). Cae en su plazo si no la marchas. |
+
+Un jugador que sigue con el modelo antiguo (por dominio entero) no tiene terreno: esas tres entidades quedan no disponibles y todo lo demás funciona igual.
+
 ## Alertas cerca de tus zonas
 
 Por defecto, las alertas solo llegan para territorios **a menos de 40 km (25 mi) de Casa**. Cámbialo en **Configurar**: *Cerca de mis zonas* o *Todos los territorios*; una o varias zonas; y el radio en tus unidades de Home Assistant. El radio por defecto es **40 km / 25 mi con una zona** y **8 km / 5 mi con dos o más**, y sigue al número de zonas hasta que escribas el tuyo. `march_filed` siempre llega.
 
 ## El evento `ashenmarch_event`
 
-Los mismos campos que arriba: `type`, `message` (ya en el idioma del jugador), `message_with_zone` (*"… — cerca de Casa (5 km)"*), `player_id`, `house`, `device_id`, `zone`, `zone_name`, `distance`, `distance_unit`, `distance_km`, `zones_matched`, `territory`, `data`. Los ejemplos de automatización de arriba sirven igual.
+Los mismos campos que arriba: `type`, `message` (ya en el idioma del jugador), `message_with_zone` (*"… — cerca de Casa (5 km)"*), `player_id`, `house`, `device_id`, `zone`, `zone_name`, `distance`, `distance_unit`, `distance_km`, `zones_matched`, `territory`, `data`; y en `siege_started` con manzanas, `place` (la calle con brecha), `blocks_breached` y `falls_at`. Los ejemplos de automatización de arriba sirven igual, incluido el aviso de brecha cerca de Casa.
 
 ## Privacidad
 
 El token se guarda solo en Home Assistant, nunca aparece en los registros y se oculta en los diagnósticos. Las distancias a tus zonas se calculan localmente; las coordenadas de tus zonas no salen de Home Assistant.
+
+La imagen del terreno muestra las calles de tu dominio. Home Assistant la descarga con tu token y la sirve él mismo; tu navegador nunca habla con Ashenmarch. Ningún atributo lleva coordenadas y los diagnósticos ocultan los nombres de las calles.
 
 ## Licencia
 

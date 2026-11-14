@@ -37,15 +37,17 @@
     "step": {
       "init": {
         "title": "Alertas",
-        "description": "Os alertas (cercos, domínios perdidos ou ganhos, prestes a desvanecer) só chegam para territórios dentro do raio das zonas escolhidas. As suas próprias marchas chegam sempre. Raio por defeito: {one_zone} {unit} para uma zona, {many_zones} {unit} para duas ou mais, até escrever o seu (por defeito para {zone_count} zona(s): {default} {unit}).",
+        "description": "Os alertas (cercos, domínios perdidos ou ganhos, prestes a desvanecer) só chegam para territórios dentro do raio das zonas escolhidas. As suas próprias marchas chegam sempre. Raio por defeito: {one_zone} {unit} para uma zona, {many_zones} {unit} para duas ou mais, até escrever o seu (por defeito para {zone_count} zona(s): {default} {unit}). A imagem do terreno mostra os quarteirões de um domínio: Automático, ou fixe um.",
         "data": {
           "alert_area": "Área de alertas",
           "zones": "Zonas",
-          "radius": "Raio"
+          "radius": "Raio",
+          "ground_holding": "Imagem do terreno"
         },
         "data_description": {
           "zones": "Um alerta chega quando o seu território está dentro do raio de qualquer uma destas zonas.",
-          "radius": "Limpe o campo para voltar ao valor por defeito."
+          "radius": "Limpe o campo para voltar ao valor por defeito.",
+          "ground_holding": "Qual domínio a imagem do terreno mostra. Automático segue o resumo do jogo: o domínio com brecha, senão o mais desgastado, senão o maior."
         }
       }
     },
@@ -58,6 +60,11 @@
       "options": {
         "near": "Perto das minhas zonas",
         "all": "Todos os territórios"
+      }
+    },
+    "ground_holding": {
+      "options": {
+        "auto": "Automático"
       }
     }
   },
@@ -108,6 +115,20 @@
       },
       "last_updated": {
         "name": "Última atualização"
+      },
+      "breach_falls": {
+        "name": "Queda da brecha",
+        "state_attributes": {
+          "place": {
+            "name": "Rua"
+          }
+        }
+      },
+      "breached_blocks": {
+        "name": "Quarteirões com brecha"
+      },
+      "worn_blocks": {
+        "name": "Quarteirões desgastados"
       }
     },
     "binary_sensor": {
@@ -124,11 +145,51 @@
             "name": "Territórios"
           }
         }
+      },
+      "breached": {
+        "name": "Com brecha",
+        "state_attributes": {
+          "place": {
+            "name": "Rua"
+          },
+          "falls_at": {
+            "name": "Cai em"
+          },
+          "overdue": {
+            "name": "Vencida"
+          },
+          "holding": {
+            "name": "Domínio"
+          }
+        }
       }
     },
     "image": {
       "coat_of_arms": {
         "name": "Brasão de armas"
+      },
+      "ground": {
+        "name": "Terreno",
+        "state_attributes": {
+          "holding": {
+            "name": "Domínio"
+          },
+          "fortified": {
+            "name": "Fortificados"
+          },
+          "held": {
+            "name": "Mantidos"
+          },
+          "worn": {
+            "name": "Desgastados"
+          },
+          "breached": {
+            "name": "Com brecha"
+          },
+          "needs_walking": {
+            "name": "Precisa de marcha"
+          }
+        }
       }
     }
   },

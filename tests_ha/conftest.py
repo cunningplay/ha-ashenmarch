@@ -28,6 +28,7 @@ TOKEN_B = "am_pat_testtokenBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
 PLAYER_A = "11111111-1111-4111-8111-111111111111"
 PLAYER_B = "22222222-2222-4222-8222-222222222222"
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+GROUND_PNG = b"\x89PNG\r\n\x1a\n" + b"\x01" * 48
 
 
 @pytest.fixture(autouse=True)
@@ -72,6 +73,18 @@ def holding(name: str, at: tuple[float, float], decays_at: str | None, state: st
     return h
 
 
+def grounded(h: dict[str, Any], fortified: int = 0, held: int = 0, worn: int = 0, breached: int = 0,
+             needs_walking: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """A holding on the block model (ASH-4513): ground counts and the stretches to walk, each with a centre."""
+    h["ground"] = {"fortified": fortified, "held": held, "worn": worn, "breached": breached}
+    h["needs_walking"] = needs_walking if needs_walking is not None else []
+    return h
+
+
+def stretch(place: str, reason: str, block_count: int, **extra) -> dict[str, Any]:
+    return {"place": place, "reason": reason, "block_count": block_count, "center": [-104.99, 39.74], **extra}
+
+
 def wrist(**overrides) -> dict[str, Any]:
     s = {
         "under_siege": 0,
@@ -114,8 +127,10 @@ class FakeAshenmarch:
         self.events_status = 200
         self.crest_status = 200
         self.holdings_status = 200
+        self.ground_status = 200  # 404 = an older server, or a holding not on the block model
+        self.ground_version = "g1"  # the picture's ETag; change it to redraw
         self.calls: list[tuple[str, dict[str, str], dict[str, Any]]] = []
-        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank", "/players/me/holdings"):
+        for path in ("/players/me", "/players/me/wrist-summary", "/players/me/events", "/players/me/coat-of-arms.png", "/players/me/rank", "/players/me/holdings", "/players/me/ground.png"):
             mocker.get(f"{API_BASE}{path}", side_effect=self._handle)
 
     def add(self, player: Player) -> Player:
@@ -123,7 +138,9 @@ class FakeAshenmarch:
         return player
 
     async def _handle(self, method, url, data):
-        from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+        from pytest_homeassistant_custom_component.test_util.aiohttp import (
+            AiohttpClientMockResponse,
+        )
 
         headers = self.mocker.mock_calls[-1][3] or {}
         token = headers.get("Authorization", "").removeprefix("Bearer ")
@@ -173,6 +190,15 @@ class FakeAshenmarch:
             if headers.get("If-None-Match") == etag:
                 return AiohttpClientMockResponse(method, url, status=304, headers={"ETag": etag})
             return AiohttpClientMockResponse(method, url, response=PNG, headers={"ETag": etag, "Content-Type": "image/png"})
+        if path == "/players/me/ground.png":
+            ids = {h["id"] for h in p.holdings if h.get("ground") is not None}
+            if self.ground_status != 200 or params.get("holding") not in ids:
+                return AiohttpClientMockResponse(method, url, status=self.ground_status if self.ground_status != 200 else 404,
+                                                 json={"error": "not_found", "message": "Holding not found."})
+            etag = f'W/"{params["holding"]}-{self.ground_version}"'
+            if headers.get("If-None-Match") == etag:
+                return AiohttpClientMockResponse(method, url, status=304, headers={"ETag": etag})
+            return AiohttpClientMockResponse(method, url, response=GROUND_PNG + params["holding"].encode(), headers={"ETag": etag, "Content-Type": "image/png"})
         return AiohttpClientMockResponse(method, url, status=404)
 
 

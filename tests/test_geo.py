@@ -1,7 +1,6 @@
 """Alert-area math: distances to a territory, zone matching, radius defaults, formatting."""
 
 import pytest
-
 from conftest import ashenmarch_geo as geo
 
 KM_PER_DEG_LAT = 111.195  # one degree of latitude, in km

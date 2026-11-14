@@ -37,15 +37,17 @@
     "step": {
       "init": {
         "title": "Benachrichtigungen",
-        "description": "Benachrichtigungen (Belagerungen, verlorene oder gewonnene Lehen, bald verblassend) kommen nur für Gebiete im Umkreis der gewählten Zonen. Deine eigenen Märsche kommen immer. Standardradius: {one_zone} {unit} bei einer Zone, {many_zones} {unit} bei zwei oder mehr, bis du einen eigenen eingibst (Standard für {zone_count} Zone(n): {default} {unit}).",
+        "description": "Benachrichtigungen (Belagerungen, verlorene oder gewonnene Lehen, bald verblassend) kommen nur für Gebiete im Umkreis der gewählten Zonen. Deine eigenen Märsche kommen immer. Standardradius: {one_zone} {unit} bei einer Zone, {many_zones} {unit} bei zwei oder mehr, bis du einen eigenen eingibst (Standard für {zone_count} Zone(n): {default} {unit}). Das Bodenbild zeigt die Blöcke eines Besitzes: Automatisch, oder hefte einen fest.",
         "data": {
           "alert_area": "Benachrichtigungsbereich",
           "zones": "Zonen",
-          "radius": "Radius"
+          "radius": "Radius",
+          "ground_holding": "Bodenbild"
         },
         "data_description": {
           "zones": "Eine Benachrichtigung kommt, wenn ihr Gebiet im Radius einer dieser Zonen liegt.",
-          "radius": "Leere das Feld, um zum Standard zurückzukehren."
+          "radius": "Leere das Feld, um zum Standard zurückzukehren.",
+          "ground_holding": "Welchen Besitz das Bodenbild zeigt. Automatisch folgt dem Überblick des Spiels: der durchbrochene Besitz, sonst der am meisten abgenutzte, sonst der größte."
         }
       }
     },
@@ -58,6 +60,11 @@
       "options": {
         "near": "In der Nähe meiner Zonen",
         "all": "Alle Gebiete"
+      }
+    },
+    "ground_holding": {
+      "options": {
+        "auto": "Automatisch"
       }
     }
   },
@@ -108,6 +115,20 @@
       },
       "last_updated": {
         "name": "Zuletzt aktualisiert"
+      },
+      "breach_falls": {
+        "name": "Fall der Bresche",
+        "state_attributes": {
+          "place": {
+            "name": "Straße"
+          }
+        }
+      },
+      "breached_blocks": {
+        "name": "Durchbrochene Blöcke"
+      },
+      "worn_blocks": {
+        "name": "Abgenutzte Blöcke"
       }
     },
     "binary_sensor": {
@@ -124,11 +145,51 @@
             "name": "Gebiete"
           }
         }
+      },
+      "breached": {
+        "name": "Durchbrochen",
+        "state_attributes": {
+          "place": {
+            "name": "Straße"
+          },
+          "falls_at": {
+            "name": "Fällt am"
+          },
+          "overdue": {
+            "name": "Überfällig"
+          },
+          "holding": {
+            "name": "Besitz"
+          }
+        }
       }
     },
     "image": {
       "coat_of_arms": {
         "name": "Wappen"
+      },
+      "ground": {
+        "name": "Boden",
+        "state_attributes": {
+          "holding": {
+            "name": "Besitz"
+          },
+          "fortified": {
+            "name": "Befestigt"
+          },
+          "held": {
+            "name": "Gehalten"
+          },
+          "worn": {
+            "name": "Abgenutzt"
+          },
+          "breached": {
+            "name": "Durchbrochen"
+          },
+          "needs_walking": {
+            "name": "Marsch nötig"
+          }
+        }
       }
     }
   },

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -36,6 +35,7 @@ from .const import (
     AREA_ALL,
     AREA_NEAR,
     CONF_ALERT_AREA,
+    CONF_GROUND_HOLDING,
     CONF_PLAYER_ID,
     CONF_RADIUS,
     CONF_RADIUS_KM,
@@ -43,6 +43,7 @@ from .const import (
     CONF_ZONES,
     DEFAULT_ZONE,
     DOMAIN,
+    GROUND_AUTO,
     PORTAL_TOKENS_URL,
     RADIUS_MAX,
     RADIUS_MIN,
@@ -163,9 +164,21 @@ class AshenmarchOptionsFlow(OptionsFlow):
                 data: dict[str, Any] = {CONF_ALERT_AREA: area, CONF_ZONES: new_zones}
                 if new_custom is not None:
                     data[CONF_RADIUS_KM] = new_custom
+                pinned = user_input.get(CONF_GROUND_HOLDING)
+                if pinned and pinned != GROUND_AUTO:
+                    data[CONF_GROUND_HOLDING] = pinned
                 return self.async_create_entry(data=data)
 
         default_now = default_radius(len(zones), unit)
+        # Ground picture (ASH-4514): Automatic, or one of the holdings that has ground (by name).
+        pinned = options.get(CONF_GROUND_HOLDING) or GROUND_AUTO
+        coordinator = getattr(self.config_entry, "runtime_data", None)
+        names = [
+            h["name"]
+            for h in (coordinator.data.holdings if coordinator and coordinator.data else [])
+            if h.get("name") and h.get("ground") is not None
+        ]
+        choices = [GROUND_AUTO, *sorted(set(names) | ({pinned} - {GROUND_AUTO}), key=str.casefold)]
         schema = vol.Schema(
             {
                 vol.Required(
@@ -189,6 +202,13 @@ class AshenmarchOptionsFlow(OptionsFlow):
                         step=0.1,
                         mode=NumberSelectorMode.BOX,
                         unit_of_measurement=unit,
+                    )
+                ),
+                vol.Optional(CONF_GROUND_HOLDING, default=pinned): SelectSelector(
+                    SelectSelectorConfig(
+                        options=choices,
+                        mode=SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_GROUND_HOLDING,
                     )
                 ),
             }

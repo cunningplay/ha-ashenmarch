@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 
 import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.helpers import device_registry as dr, issue_registry as ir
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import async_capture_events, async_fire_time_changed
+from pytest_homeassistant_custom_component.common import (
+    async_capture_events,
+    async_fire_time_changed,
+)
 
 from custom_components.ashenmarch.const import (
     AREA_ALL,
@@ -26,7 +30,6 @@ from custom_components.ashenmarch.const import (
 from custom_components.ashenmarch.diagnostics import async_get_config_entry_diagnostics
 
 from .conftest import (
-    holding,
     HOME,
     PLAYER_A,
     PLAYER_B,
@@ -37,6 +40,7 @@ from .conftest import (
     FakeAshenmarch,
     Player,
     event,
+    holding,
     make_entry,
     north_of,
     wrist,
@@ -507,7 +511,9 @@ async def test_rank_failure_keeps_the_realm_running(hass: HomeAssistant, server:
 
     async def flaky(method, url, data):
         if url.path.endswith("/players/me/rank"):
-            from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+            from pytest_homeassistant_custom_component.test_util.aiohttp import (
+                AiohttpClientMockResponse,
+            )
             return AiohttpClientMockResponse(method, url, status=503)
         return await orig(method, url, data)
 
