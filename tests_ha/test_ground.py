@@ -425,3 +425,18 @@ async def test_siege_started_without_place(hass: HomeAssistant, server: FakeAshe
     assert not {"place", "blocks_breached", "falls_at"} & set(data)
     assert data["data"] == {"attacker_house": "Rival"}
     assert data["zone"] == "zone.home"
+
+
+async def test_upgrade_from_v04_reads_ground(hass: HomeAssistant, server: FakeAshenmarch, hass_storage) -> None:
+    """An entry stored by v0.4 (holdings without ground, an ETag the server still matches) gets ground on the first poll."""
+    p = server.add(breached_player())
+    entry = make_entry()
+    old = [{"name": h["name"], "state": "active"} for h in p.holdings]
+    hass_storage[f"ashenmarch.{entry.entry_id}"] = {
+        "version": 1, "key": f"ashenmarch.{entry.entry_id}",
+        "data": {"holdings": old, "holdings_etag": f'W/"{hash(str(p.holdings))}"'},
+    }
+    await setup(hass, entry)
+    assert hass.states.get("image.house_testhold_ground").state != "unavailable"
+    assert hass.states.get("sensor.house_testhold_breached_blocks").state == "1"
+    assert hass.states.get("sensor.house_testhold_holdings").attributes["list"][0]["ground"]["breached"] == 1

@@ -182,6 +182,9 @@ class AshenmarchCoordinator(DataUpdateCoordinator[AshenmarchData]):
         self._holdings = stored.get("holdings") or []
         self._holdings_etag = stored.get("holdings_etag")
         self._holding_ids = stored.get("holding_ids") or {}
+        if self._holdings and ("ground" not in self._holdings[0] or not self._holding_ids):
+            # Stored by v0.4 (no ground, no ids): read the list in full once, or a 304 would keep the old shape.
+            self._holdings_etag = None
         if ground := stored.get("ground"):
             try:
                 self._ground = base64.b64decode(ground)
